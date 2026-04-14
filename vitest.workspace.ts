@@ -1,1 +1,1 @@
-export default ["packages/*/vitest.config.{ts,mts,cts}"];
+export default ['packages/*/vitest.config.{ts,mts,cts}'];

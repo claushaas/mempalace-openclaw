@@ -1,8 +1,8 @@
 {
-  "plugins": {
-    "slots": {
-      "memory": "memory-mempalace",
-      "contextEngine": "claw-context-mempalace"
-    }
-  }
+	"plugins": {
+		"slots": {
+			"contextEngine": "claw-context-mempalace",
+			"memory": "memory-mempalace"
+		}
+	}
 }

@@ -1,28 +1,36 @@
 {
-  "name": "mempalace-openclaw",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "packageManager": "pnpm@10.33.0",
-  "engines": {
-    "node": ">=24.13.1 <25",
-    "pnpm": ">=10.33.0 <11"
-  },
-  "scripts": {
-    "build": "pnpm -r --if-present build",
-    "test": "vitest --workspace vitest.workspace.ts --run --passWithNoTests",
-    "lint": "biome check .",
-    "typecheck": "pnpm -r --if-present typecheck",
-    "dev": "pnpm -r --parallel --if-present dev",
-    "validate-config": "node --eval \"const fs=require('node:fs'); const path=require('node:path'); const dir=path.join(process.cwd(),'examples'); for (const name of fs.readdirSync(dir)) { if (!name.endsWith('.json')) continue; const file=path.join(dir,name); JSON.parse(fs.readFileSync(file,'utf8')); console.log('validated', path.relative(process.cwd(), file)); }\"",
-    "update": "pnpm dlx npm-check-updates -i"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.4.12",
-    "@types/node": "^25.6.0",
-    "tsx": "^4.21.0",
-    "tsup": "^8.5.1",
-    "typescript": "^6.0.2",
-    "vitest": "^4.1.4"
-  }
+	"name": "mempalace-openclaw",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"packageManager": "pnpm@10.33.0",
+	"engines": {
+		"node": ">=24.13.1 <25",
+		"pnpm": ">=10.33.0 <11"
+	},
+	"scripts": {
+		"build": "pnpm -r --if-present build",
+		"test": "vitest run --passWithNoTests",
+		"lint": "biome check .",
+		"typecheck": "pnpm -r --if-present typecheck",
+		"dev": "pnpm -r --parallel --if-present dev",
+		"validate-config": "node --eval \"const fs=require('node:fs'); const path=require('node:path'); const dir=path.join(process.cwd(),'examples'); for (const name of fs.readdirSync(dir)) { if (!name.endsWith('.json')) continue; const file=path.join(dir,name); JSON.parse(fs.readFileSync(file,'utf8')); console.log('validated', path.relative(process.cwd(), file)); }\"",
+		"host-real:bootstrap": "node ./scripts/host-real/bootstrap.mjs",
+		"host-real:manifest": "node ./scripts/host-real/manifest.mjs",
+		"host-real:memory-slot": "node ./scripts/host-real/memory-slot.mjs",
+		"host-real:context-slot": "node ./scripts/host-real/context-slot.mjs",
+		"host-real:active-memory": "node ./scripts/host-real/active-memory.mjs",
+		"host-real:all": "node ./scripts/host-real/all.mjs",
+		"update": "pnpm dlx npm-check-updates -i"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.12",
+		"@types/node": "^25.6.0",
+		"openclaw": "2026.4.14",
+		"tsx": "^4.21.0",
+		"tsup": "^8.5.1",
+		"typescript": "^6.0.2",
+		"vite": "^7.1.11",
+		"vitest": "^4.1.4"
+	}
 }

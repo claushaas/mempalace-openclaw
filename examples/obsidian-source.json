@@ -1,13 +1,17 @@
 {
-  "id": "obsidian-main",
-  "kind": "filesystem",
-  "path": "/path/to/obsidian-vault",
-  "mode": "notes",
-  "schedule": "0 * * * *",
-  "include": ["**/*.md"],
-  "exclude": [".obsidian/**"],
-  "defaults": {
-    "wing": "wing_general",
-    "hall": "hall_discoveries"
-  }
+	"defaults": {
+		"hall": "hall_discoveries",
+		"wing": "wing_general"
+	},
+	"exclude": [
+		".obsidian/**"
+	],
+	"id": "obsidian-main",
+	"include": [
+		"**/*.md"
+	],
+	"kind": "filesystem",
+	"mode": "notes",
+	"path": "/path/to/obsidian-vault",
+	"schedule": "0 * * * *"
 }

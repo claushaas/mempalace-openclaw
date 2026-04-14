@@ -333,6 +333,9 @@ Eliminar o principal risco do projeto antes da implementação profunda: descobr
 
 - `docs/COMPATIBILITY_MATRIX.md`
 - `docs/TEST_STRATEGY.md`
+- `fixtures/host-real/probe-memory-slot`
+- `fixtures/host-real/probe-context-engine-slot`
+- `scripts/host-real/`
 - pelo menos uma versão-alvo de OpenClaw pinada
 - manifest real validado contra a versão-alvo
 - prova de carregamento real do slot de memória
@@ -341,28 +344,51 @@ Eliminar o principal risco do projeto antes da implementação profunda: descobr
 
 ### Implementação
 
-1. Escolher e pinar pelo menos uma versão-alvo de OpenClaw.
-2. Registrar no `docs/COMPATIBILITY_MATRIX.md`:
+1. Pinar `openclaw@2026.4.14` no repositório como host canônico da Etapa 0A.
+2. Criar dois probes mínimos, explicitamente fora do produto:
+   - `fixtures/host-real/probe-memory-slot`
+   - `fixtures/host-real/probe-context-engine-slot`
+3. Criar scripts idempotentes de execução:
+   - `pnpm host-real:bootstrap`
+   - `pnpm host-real:manifest`
+   - `pnpm host-real:memory-slot`
+   - `pnpm host-real:context-slot`
+   - `pnpm host-real:active-memory`
+   - `pnpm host-real:all`
+4. Usar `.tmp/openclaw-host/` como estado/config/workspace isolado do host e `.tmp/host-real-results/` como diretório canônico de evidências temporárias.
+5. Registrar no `docs/COMPATIBILITY_MATRIX.md`:
    - versão-alvo
    - origem da validação
    - data da validação
    - status por surface
-3. Validar, no host real:
+6. Validar, no host real:
    - formato do manifest aceito
    - descoberta/carregamento de plugin
    - seleção de `plugins.slots.memory`
    - seleção de `plugins.slots.contextEngine`
-4. Investigar Active Memory na versão-alvo:
+7. Investigar Active Memory na versão-alvo:
    - chave de configuração real
    - ordem de execução
    - limitações observadas
    - se o seam é estável, experimental ou indisponível
-5. Formalizar três estados por surface:
+8. Formalizar três estados por surface:
    - `validated`
    - `partially_validated`
    - `blocked`
-6. Registrar em `docs/TEST_STRATEGY.md` o plano de testes host-real e os harnesses mínimos necessários.
-7. Se houver divergência entre docs oficiais e comportamento real do host, registrar a divergência explicitamente e fazer o roadmap seguir o host real.
+9. Registrar em `docs/TEST_STRATEGY.md` o plano de testes host-real e os harnesses mínimos necessários.
+10. Se houver divergência entre docs oficiais e comportamento real do host, registrar a divergência explicitamente e fazer o roadmap seguir o host real.
+
+### Implementação Concretizada na Etapa 0A
+
+- O host canônico foi pinado em `package.json` como `openclaw@2026.4.14`.
+- Os probes vivem em `fixtures/host-real/` e usam os ids:
+  - `probe-memory-slot`
+  - `probe-context-engine-slot`
+- Os harnesses reais vivem em `scripts/host-real/`.
+- O bootstrap isolado do host é feito via `openclaw onboard --non-interactive --accept-risk ...` com `OPENCLAW_STATE_DIR` e `OPENCLAW_CONFIG_PATH` apontando para `.tmp/openclaw-host/`.
+- As evidências temporárias são gravadas em `.tmp/host-real-results/`.
+- `Active Memory` nesta etapa usa o plugin bundled `active-memory` do próprio host-alvo. Não existe probe separado porque o objetivo aqui é validar o seam real da versão `2026.4.14`, não simular o comportamento do plugin oficial.
+- Descoberta host-real relevante: em `openclaw@2026.4.14`, selecionar um memory slot externo desativa `memory-core`; portanto a árvore CLI `openclaw memory` não é um oráculo válido para a Etapa 0A quando o slot `memory` aponta para um plugin externo.
 
 ### Critérios de Aceite
 
@@ -372,6 +398,14 @@ Eliminar o principal risco do projeto antes da implementação profunda: descobr
 - O slot de context engine foi efetivamente carregado por um host real.
 - O estado do Active Memory na versão-alvo está claramente classificado.
 - `docs/COMPATIBILITY_MATRIX.md` e `docs/TEST_STRATEGY.md` refletem resultados reais, não apenas intenção.
+
+### Estado Atual da Etapa 0A
+
+- `openclaw@2026.4.14` pinado e executável via scripts do repositório.
+- manifest dos dois probes validado em host real.
+- slot de memória validado por seleção explícita do slot, inspeção do plugin e bootstrap do gateway com o probe ativo.
+- slot de context engine validado por registro real do engine e bootstrap do gateway com o slot configurado.
+- `Active Memory` classificado como `partially_validated`: config surface aceita, plugin bundled presente e bootstrap do gateway viável, mas sem prova ainda do blocking pre-reply pass.
 
 ### Riscos Principais
 
@@ -1155,8 +1189,8 @@ Fechar o ciclo de execução com scripts operacionais, validação automatizada 
 
 | Fase | Nome | Status inicial | Saída principal |
 |---|---|---|---|
-| 0 | Bootstrap do monorepo | não iniciada | base buildável/testável |
-| 0A | Validação host-real do seam | não iniciada | compatibilidade pinada e auditável |
+| 0 | Bootstrap do monorepo | concluída | base buildável/testável |
+| 0A | Validação host-real do seam | concluída | compatibilidade pinada e auditável |
 | 1 | Documentação-base obrigatória | não iniciada | docs operacionais completos |
 | 2 | `packages/shared` | não iniciada | contratos e schemas canônicos |
 | 3 | `packages/memory-mempalace` | não iniciada | runtime replacement funcional |

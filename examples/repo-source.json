@@ -1,13 +1,13 @@
 {
-  "id": "repo-main",
-  "kind": "git",
-  "path": "/path/to/local-repository",
-  "mode": "repo",
-  "schedule": "*/30 * * * *",
-  "include": ["**/*"],
-  "exclude": [".git/**", "node_modules/**", "dist/**"],
-  "defaults": {
-    "wing": "wing_projects",
-    "hall": "hall_codebases"
-  }
+	"defaults": {
+		"hall": "hall_codebases",
+		"wing": "wing_projects"
+	},
+	"exclude": [".git/**", "node_modules/**", "dist/**"],
+	"id": "repo-main",
+	"include": ["**/*"],
+	"kind": "git",
+	"mode": "repo",
+	"path": "/path/to/local-repository",
+	"schedule": "*/30 * * * *"
 }

@@ -4,6 +4,8 @@ coverage/
 *.tsbuildinfo
 .DS_Store
 .cache/
+.tmp/
+.tmp/**
 tmp/
 tmp/**
 .mempalace-spool/

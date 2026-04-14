@@ -27,77 +27,135 @@ Este documento é obrigatório para a execução do roadmap.
   - `blocked`
   - `pending`
 - Se o comportamento real divergir da documentação oficial, o comportamento real do host prevalece para a implementação.
+- Status `validated` nesta etapa significa que o seam foi exercitado por harness host-real. Não significa que os plugins finais `memory-mempalace` e `claw-context-mempalace` já existam.
 
 ---
 
 ## 3. Versões-Alvo
 
-| OpenClaw version | Status | Notes |
-|---|---|---|
-| `TBD during roadmap Etapa 0A` | `pending` | A primeira versão-alvo deve ser pinada antes da implementação profunda dos plugins |
+| OpenClaw version | Status | Date | Install method | Notes |
+|---|---|---|---|---|
+| `2026.4.14` | `partially_validated` | `2026-04-14` | npm package `openclaw` | versão canônica da Etapa 0A; seams de manifest, memory slot e context engine validados com probes; Active Memory parcialmente validado |
 
 ---
 
-## 4. Surface Matrix
+## 4. Ambiente de Validação
+
+| Campo | Valor |
+|---|---|
+| sistema operacional | macOS (`Darwin`) |
+| runtime Node | `v24.13.1` |
+| gerenciador de pacotes | `pnpm 10.33.0` |
+| host temporário | `.tmp/openclaw-host/` |
+| resultados temporários | `.tmp/host-real-results/` |
+| scripts de execução | `pnpm host-real:*` |
+| probes rastreados | `fixtures/host-real/probe-memory-slot`, `fixtures/host-real/probe-context-engine-slot` |
+
+---
+
+## 5. Surface Matrix
 
 | Surface | Required | Current status | Evidence | Notes |
 |---|---|---|---|---|
-| plugin manifest acceptance | yes | `pending` | to be recorded in Etapa 0A | validar manifest real aceito pelo host |
-| memory slot loading | yes | `pending` | to be recorded in Etapa 0A | `plugins.slots.memory = "memory-mempalace"` |
-| context engine slot loading | yes | `pending` | to be recorded in Etapa 0A | `plugins.slots.contextEngine = "claw-context-mempalace"` |
-| Active Memory seam discovery | yes | `pending` | to be recorded in Etapa 0A | descobrir chave real, limites e estabilidade |
-| recommended mode automatic recall | yes | `pending` | to be recorded in test strategy | este é o piso mínimo esperado para recall forte se full não estiver disponível |
-| full mode automatic recall | conditional | `pending` | to be recorded in test strategy | depende do seam real de Active Memory |
+| plugin manifest acceptance | yes | `validated` | `pnpm host-real:manifest` | OpenClaw aceita `openclaw.plugin.json` + `package.json` com `openclaw.extensions` para os dois probes |
+| memory slot loading | yes | `validated` | `pnpm host-real:memory-slot` | o host carrega `probe-memory-slot`, resolve `plugins.slots.memory`, marca o plugin como slot selecionado e sobe o gateway com ele ativo |
+| context engine slot loading | yes | `validated` | `pnpm host-real:context-slot` | o host carrega `probe-context-engine-slot`, aceita `plugins.slots.contextEngine` e registra o engine em runtime real |
+| Active Memory seam discovery | yes | `partially_validated` | `pnpm host-real:active-memory` | a chave `plugins.entries.active-memory` é aceita e o plugin bundled existe na versão-alvo; o blocking pre-reply path ainda não foi observado ponta a ponta |
+| recommended mode automatic recall | yes | `pending` | planned in `docs/TEST_STRATEGY.md` | depende dos plugins reais `memory-mempalace` + `claw-context-mempalace` |
+| full mode automatic recall | conditional | `pending` | planned in `docs/TEST_STRATEGY.md` | depende dos plugins reais e da conclusão do path Active Memory |
 
 ---
 
-## 5. Operational Modes
+## 6. Operational Modes
 
-### 5.1 `memory-only`
-
-| Item | Status | Notes |
-|---|---|---|
-| config example exists | `pending` | `examples/openclaw.config.memory-only.json` |
-| smoke test in host real | `pending` | deve provar carregamento do slot e funcionamento básico |
-| limitations documented | `pending` | recall automático forte pode ser limitado |
-
-### 5.2 `recommended`
+### 6.1 `memory-only`
 
 | Item | Status | Notes |
 |---|---|---|
-| config example exists | `pending` | `examples/openclaw.config.recommended.json` |
-| smoke test in host real | `pending` | deve provar memory slot + context engine |
-| observable automatic recall proof | `pending` | sem skill explícita |
-| limitations documented | `pending` | deve registrar qualquer degradação sem Active Memory |
+| config example exists | `validated` | `examples/openclaw.config.memory-only.json` existe e é válido em JSON |
+| smoke test in host real | `pending` | a Etapa 0A valida apenas o seam; smoke test do produto entra depois |
+| limitations documented | `validated` | nesta etapa só existe prova do slot com probe, não do runtime MemPalace final |
 
-### 5.3 `full`
+### 6.2 `recommended`
 
 | Item | Status | Notes |
 |---|---|---|
-| config example exists | `pending` | `examples/openclaw.config.full.json` |
-| smoke test in host real | `pending` | deve provar os três surfaces |
-| observable automatic recall proof | `pending` | sem skill explícita |
-| limitations documented | `pending` | registrar bloqueios ou suporte parcial do Active Memory |
+| config example exists | `validated` | `examples/openclaw.config.recommended.json` existe e é válido em JSON |
+| smoke test in host real | `pending` | depende dos packages reais e do harness de recall automático |
+| observable automatic recall proof | `pending` | ainda não existe porque os plugins finais não foram implementados |
+| limitations documented | `validated` | o seam do context engine está validado; o comportamento de recall automático continua pendente |
+
+### 6.3 `full`
+
+| Item | Status | Notes |
+|---|---|---|
+| config example exists | `validated` | `examples/openclaw.config.full.json` existe e é válido em JSON |
+| smoke test in host real | `pending` | depende dos plugins finais e de Active Memory operacional |
+| observable automatic recall proof | `pending` | ainda não existe |
+| limitations documented | `validated` | Active Memory está apenas parcialmente validado nesta versão-alvo |
 
 ---
 
-## 6. Evidências Obrigatórias por Versão
+## 7. Evidências da Etapa 0A
 
-Para cada versão-alvo pinada, registrar:
+### 7.1 Manifest e discovery
 
-- versão exata;
-- sistema operacional / ambiente onde a validação ocorreu;
-- forma de instalação do OpenClaw host;
-- localização do manifest validado;
-- comando ou harness usado para carregar plugins;
-- resultado do smoke test `memory-only`;
-- resultado do smoke test `recommended`;
-- resultado do smoke test `full`, ou razão exata para indisponibilidade;
-- link ou referência cruzada para o teste/harness de prova observável de recall.
+- comando: `pnpm host-real:manifest`
+- relatório: `.tmp/host-real-results/host-real-manifest.json`
+- prova produzida:
+  - bootstrap isolado do host em `.tmp/openclaw-host/`;
+  - instalação linkada dos probes;
+  - `plugins inspect` com manifests aceitos pelo host;
+  - `config validate --json` no ambiente isolado.
+
+### 7.2 Memory slot
+
+- comando: `pnpm host-real:memory-slot`
+- relatório: `.tmp/host-real-results/host-real-memory-slot.json`
+- prova produzida:
+  - config isolada com `plugins.slots.memory = "probe-memory-slot"`;
+  - `plugins inspect` marcando `memorySlotSelected: true` e `activationReason: "selected memory slot"`;
+  - bootstrap do gateway com `probe-memory-slot` listado entre os plugins ativos;
+  - JSONL de evidência do probe em `.tmp/host-real-results/probe-memory-slot.jsonl`.
+
+### 7.3 Context engine
+
+- comando: `pnpm host-real:context-slot`
+- relatório: `.tmp/host-real-results/host-real-context-slot.json`
+- prova produzida:
+  - config isolada com `plugins.slots.contextEngine = "probe-context-engine-slot"`;
+  - `plugins inspect` confirmando registro do context engine;
+  - bootstrap do gateway em host real;
+  - JSONL de evidência do probe em `.tmp/host-real-results/probe-context-engine-slot.jsonl`.
+
+### 7.4 Active Memory
+
+- comando: `pnpm host-real:active-memory`
+- relatório: `.tmp/host-real-results/host-real-active-memory.json`
+- prova produzida:
+  - config isolada usando `plugins.entries.active-memory`;
+  - `plugins inspect active-memory --json` em `openclaw@2026.4.14`;
+  - `config validate --json` aceitando o shape configurado;
+  - bootstrap do gateway com o plugin bundled habilitado.
+
+### 7.5 All-in-one
+
+- comando: `pnpm host-real:all`
+- função: roda a suíte da Etapa 0A em sequência e regrava todos os relatórios temporários.
 
 ---
 
-## 7. Critério de Atualização
+## 8. Limitações Conhecidas Após a Etapa 0A
+
+- Os probes desta etapa **não** implementam `memory-mempalace` nem `claw-context-mempalace`.
+- `validated` nesta etapa prova o seam do host, não a integração com MemPalace.
+- Em `openclaw@2026.4.14`, selecionar um memory slot externo desativa `memory-core`. Como `memory-core` é dono da árvore CLI `openclaw memory`, essa árvore não é um harness válido para plugins externos nesta etapa.
+- O seam de Active Memory está **disponível e configurável** em `2026.4.14`, mas o blocking pre-reply recall ainda não foi provado com MemPalace nem com os plugins finais.
+- A prova de recall automático continua bloqueada nas Etapas 3, 5 e 9, quando o runtime real e o harness canônico existirem.
+
+---
+
+## 9. Critério de Atualização
 
 Este documento deve ser atualizado sempre que ocorrer qualquer um dos eventos abaixo:
 
@@ -106,4 +164,5 @@ Este documento deve ser atualizado sempre que ocorrer qualquer um dos eventos ab
 - mudança do seam de Active Memory;
 - mudança do formato dos configs de exemplo;
 - regressão de smoke test;
-- alteração do harness de prova observável de recall.
+- alteração do harness de prova observável de recall;
+- alteração dos scripts `pnpm host-real:*` ou dos probes em `fixtures/host-real/`.

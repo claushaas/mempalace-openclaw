@@ -1,0 +1,12 @@
+{
+	"configSchema": {
+		"additionalProperties": false,
+		"properties": {},
+		"type": "object"
+	},
+	"description": "Host-real validation probe for the OpenClaw memory slot seam.",
+	"id": "probe-memory-slot",
+	"kind": "memory",
+	"name": "Probe Memory Slot",
+	"version": "0.0.0-host-real-probe"
+}

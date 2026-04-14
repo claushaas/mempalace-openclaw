@@ -1,0 +1,19 @@
+{
+	"name": "@mempalace-openclaw/probe-context-engine-slot",
+	"private": true,
+	"version": "0.0.0-host-real-probe",
+	"type": "module",
+	"openclaw": {
+		"extensions": [
+			"./index.js"
+		],
+		"compat": {
+			"pluginApi": ">=2026.4.14",
+			"minGatewayVersion": "2026.4.14"
+		},
+		"build": {
+			"openclawVersion": "2026.4.14",
+			"pluginSdkVersion": "2026.4.14"
+		}
+	}
+}

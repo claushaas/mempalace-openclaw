@@ -1,0 +1,12 @@
+{
+	"configSchema": {
+		"additionalProperties": false,
+		"properties": {},
+		"type": "object"
+	},
+	"description": "Host-real validation probe for the OpenClaw context engine slot seam.",
+	"id": "probe-context-engine-slot",
+	"kind": "context-engine",
+	"name": "Probe Context Engine Slot",
+	"version": "0.0.0-host-real-probe"
+}
