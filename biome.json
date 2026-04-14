@@ -1,16 +1,94 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on",
+        "useSortedAttributes": "on",
+        "useSortedKeys": "on",
+        "useSortedProperties": "on"
+      }
+    }
+  },
   "files": {
-    "include": ["*.json", "*.md", "docs/**", "examples/**/*.json"],
-    "ignore": [".git/**", "node_modules/**", "dist/**", "coverage/**"]
+    "ignoreUnknown": true,
+    "includes": [
+      "**/*.js",
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.css",
+      "**/*.scss",
+      "**/*.html",
+      "**/*.json",
+      "**/*.md",
+      "!**/supabase/functions",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/build",
+      "!**/coverage",
+      "!**/ios",
+      "!**/android",
+      "!**/.git/",
+      "!**/.vscode",
+      "!**/.react-router",
+      "!**/worker-configuration.d.ts",
+      "!**/*.d.ts",
+      "!**/*.spec.ts",
+      "!seed.ts",
+      "!**/.github",
+      "!**/.rnstorybook"
+    ]
   },
   "formatter": {
     "enabled": true,
-    "indentStyle": "space",
-    "indentWidth": 2,
-    "lineWidth": 100
+    "indentStyle": "tab"
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
   },
   "linter": {
-    "enabled": true
+    "domains": {
+      "react": "all"
+    },
+    "enabled": true,
+    "rules": {
+      "performance": {
+        "noDynamicNamespaceImportAccess": "off"
+      },
+      "recommended": true
+    }
+  },
+  "overrides": [
+    {
+      "assist": {
+        "actions": {
+          "source": {
+            "useSortedKeys": "off"
+          }
+        }
+      },
+      "includes": [
+        "**/package.json"
+      ]
+    },
+    {
+      "includes": [
+        "**/*.stories.*"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "useComponentExportOnlyModules": "off"
+          }
+        }
+      }
+    }
+  ],
+  "vcs": {
+    "clientKind": "git",
+    "enabled": true,
+    "useIgnoreFile": true
   }
 }

@@ -14,14 +14,15 @@
     "lint": "biome check .",
     "typecheck": "pnpm -r --if-present typecheck",
     "dev": "pnpm -r --parallel --if-present dev",
-    "validate-config": "node --eval \"const fs=require('node:fs'); const path=require('node:path'); const dir=path.join(process.cwd(),'examples'); for (const name of fs.readdirSync(dir)) { if (!name.endsWith('.json')) continue; const file=path.join(dir,name); JSON.parse(fs.readFileSync(file,'utf8')); console.log('validated', path.relative(process.cwd(), file)); }\""
+    "validate-config": "node --eval \"const fs=require('node:fs'); const path=require('node:path'); const dir=path.join(process.cwd(),'examples'); for (const name of fs.readdirSync(dir)) { if (!name.endsWith('.json')) continue; const file=path.join(dir,name); JSON.parse(fs.readFileSync(file,'utf8')); console.log('validated', path.relative(process.cwd(), file)); }\"",
+    "update": "pnpm dlx npm-check-updates -i"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
-    "@types/node": "^24.0.0",
-    "tsx": "^4.19.0",
-    "tsup": "^8.3.0",
-    "typescript": "^5.9.0",
-    "vitest": "^2.1.0"
+    "@biomejs/biome": "^2.4.12",
+    "@types/node": "^25.6.0",
+    "tsx": "^4.21.0",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.4"
   }
 }
