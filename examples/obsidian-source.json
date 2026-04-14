@@ -4,12 +4,8 @@
   "path": "/path/to/obsidian-vault",
   "mode": "notes",
   "schedule": "0 * * * *",
-  "include": [
-    "**/*.md"
-  ],
-  "exclude": [
-    ".obsidian/**"
-  ],
+  "include": ["**/*.md"],
+  "exclude": [".obsidian/**"],
   "defaults": {
     "wing": "wing_general",
     "hall": "hall_discoveries"

@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.DS_Store
+.cache/
+tmp/
+tmp/**
+.mempalace-spool/
+spool/
+spool/**
+sync.db
+sync.db-*

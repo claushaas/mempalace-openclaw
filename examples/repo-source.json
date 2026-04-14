@@ -4,14 +4,8 @@
   "path": "/path/to/local-repository",
   "mode": "repo",
   "schedule": "*/30 * * * *",
-  "include": [
-    "**/*"
-  ],
-  "exclude": [
-    ".git/**",
-    "node_modules/**",
-    "dist/**"
-  ],
+  "include": ["**/*"],
+  "exclude": [".git/**", "node_modules/**", "dist/**"],
   "defaults": {
     "wing": "wing_projects",
     "hall": "hall_codebases"

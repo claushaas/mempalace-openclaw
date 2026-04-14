@@ -37,6 +37,24 @@ O status real de cada modo deve ser consultado em `docs/COMPATIBILITY_MATRIX.md`
 - `docs/COMPATIBILITY_MATRIX.md`
 - `docs/TEST_STRATEGY.md`
 
+## Bootstrap Local
+
+Pré-requisitos:
+
+- `Node.js v24.13.1`
+- `pnpm 10.33.0`
+
+Scripts da raiz:
+
+- `pnpm build`
+- `pnpm test`
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm dev`
+- `pnpm validate-config`
+
+Esta Etapa 0 prepara apenas o bootstrap estrutural do monorepo. Os packages funcionais do runtime ainda não existem nesta fase.
+
 ## Estado Atual
 
 O repositório ainda está em fase de definição e endurecimento de plano. A compatibilidade host-real deve ser validada cedo, conforme descrito no roadmap.
