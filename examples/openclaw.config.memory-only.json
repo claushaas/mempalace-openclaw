@@ -1,0 +1,7 @@
+{
+  "plugins": {
+    "slots": {
+      "memory": "memory-mempalace"
+    }
+  }
+}

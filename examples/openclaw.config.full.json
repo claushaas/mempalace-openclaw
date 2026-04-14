@@ -1,0 +1,15 @@
+{
+  "plugins": {
+    "slots": {
+      "memory": "memory-mempalace",
+      "contextEngine": "claw-context-mempalace"
+    }
+  },
+  "agents": {
+    "defaults": {
+      "activeMemory": {
+        "enabled": true
+      }
+    }
+  }
+}
