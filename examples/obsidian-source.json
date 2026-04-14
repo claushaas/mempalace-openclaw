@@ -3,13 +3,9 @@
 		"hall": "hall_discoveries",
 		"wing": "wing_general"
 	},
-	"exclude": [
-		".obsidian/**"
-	],
+	"exclude": [".obsidian/**"],
 	"id": "obsidian-main",
-	"include": [
-		"**/*.md"
-	],
+	"include": ["**/*.md"],
 	"kind": "filesystem",
 	"mode": "notes",
 	"path": "/path/to/obsidian-vault",
