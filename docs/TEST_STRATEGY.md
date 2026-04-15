@@ -15,6 +15,14 @@ Os testes precisam cobrir:
 - compatibilidade com um host OpenClaw real;
 - prova observável de recall automático pré-resposta.
 
+Documentos operacionais relacionados:
+
+- contrato do runtime de memória: [MEMORY_RUNTIME.md](MEMORY_RUNTIME.md)
+- contrato do context engine: [CONTEXT_ENGINE.md](CONTEXT_ENGINE.md)
+- contrato de hooks e spool: [HOOKS.md](HOOKS.md)
+- enablement e limites de Active Memory: [ACTIVE_MEMORY.md](ACTIVE_MEMORY.md)
+- entidades e envelopes compartilhados: [MEMORY_PROTOCOL.md](MEMORY_PROTOCOL.md)
+
 ---
 
 ## 2. Pirâmide de Testes
@@ -23,7 +31,7 @@ Os testes precisam cobrir:
 
 Cobrem:
 
-- schemas e parsing de `packages/shared`;
+- schemas e parsing de `packages/shared`, conforme o contrato lógico descrito em [MEMORY_PROTOCOL.md](MEMORY_PROTOCOL.md);
 - ranking, deduplicação e retrieval composer;
 - classificação leve;
 - envelopes de hooks;
@@ -41,6 +49,8 @@ Cobrem:
 
 Esses testes devem usar fake `MemPalaceClient`.
 
+O contrato alvo dessas superfícies está congelado em [MEMORY_RUNTIME.md](MEMORY_RUNTIME.md).
+
 ### 2.3 Integração Local
 
 Cobrem:
@@ -49,6 +59,8 @@ Cobrem:
 - runtime -> context engine;
 - config examples -> validação -> boot mínimo;
 - refresh e status do runtime.
+
+As fronteiras lógicas dessas integrações estão descritas em [HOOKS.md](HOOKS.md), [MEMORY_RUNTIME.md](MEMORY_RUNTIME.md) e [CONTEXT_ENGINE.md](CONTEXT_ENGINE.md).
 
 ### 2.4 Host-Real
 
@@ -60,11 +72,15 @@ Cobrem:
 - seam real do Active Memory na versão-alvo;
 - smoke tests por modo operacional.
 
+Os limites atualmente observados do host-alvo estão em [COMPATIBILITY_MATRIX.md](COMPATIBILITY_MATRIX.md) e [ACTIVE_MEMORY.md](ACTIVE_MEMORY.md).
+
 ---
 
 ## 3. Harnesses Host-Real da Etapa 0A
 
 Os harnesses abaixo existem para fechar o seam com OpenClaw antes da implementação profunda dos packages do produto.
+
+Eles não contam como prova da futura integração `memory-mempalace` ou `claw-context-mempalace`; essa prova virá nas etapas seguintes com smoke tests e harness de recall automático.
 
 Todos usam:
 
@@ -181,6 +197,7 @@ Status atual:
 Bloqueio atual:
 
 - depende do package real `packages/memory-mempalace`.
+- o contrato alvo desse runtime está em [MEMORY_RUNTIME.md](MEMORY_RUNTIME.md).
 
 ### 4.2 `recommended`
 
@@ -202,6 +219,7 @@ Status atual:
 Bloqueio atual:
 
 - depende dos packages reais `packages/memory-mempalace` e `packages/context-engine-mempalace`.
+- depende também do formato de injeção e budget descritos em [CONTEXT_ENGINE.md](CONTEXT_ENGINE.md).
 
 ### 4.3 `full`
 
@@ -223,6 +241,7 @@ Status atual:
 Bloqueio atual:
 
 - depende dos plugins reais e do path Active Memory operacional.
+- os limites atuais de enablement estão em [ACTIVE_MEMORY.md](ACTIVE_MEMORY.md).
 
 ---
 
@@ -241,7 +260,7 @@ Este projeto só pode ser considerado pronto se houver ao menos um teste ou harn
 - logs ou traces do runtime de memória;
 - logs ou traces do context engine e/ou Active Memory;
 - saída final do harness;
-- referência cruzada em `docs/COMPATIBILITY_MATRIX.md`.
+- referência cruzada em [COMPATIBILITY_MATRIX.md](COMPATIBILITY_MATRIX.md).
 
 ### 5.2 Cenário canônico inicial
 
@@ -258,6 +277,7 @@ O primeiro harness deve usar um corpus pequeno e determinístico, com:
 Razão:
 
 - Etapa 0A fecha apenas o seam do host.
+- a Etapa 1 congela os contratos operacionais, mas ainda não implementa o runtime nem o harness final.
 - A prova canônica depende dos packages finais e do path ingestão -> retrieval -> context injection real.
 
 ---

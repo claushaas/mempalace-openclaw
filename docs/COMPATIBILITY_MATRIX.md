@@ -15,6 +15,13 @@ Ele existe para impedir duas falhas:
 
 Este documento é obrigatório para a execução do roadmap.
 
+Documentos operacionais relacionados:
+
+- contrato do runtime de memória: [MEMORY_RUNTIME.md](MEMORY_RUNTIME.md)
+- contrato do context engine: [CONTEXT_ENGINE.md](CONTEXT_ENGINE.md)
+- enablement e limites de Active Memory: [ACTIVE_MEMORY.md](ACTIVE_MEMORY.md)
+- prova observável e estratégia de testes: [TEST_STRATEGY.md](TEST_STRATEGY.md)
+
 ---
 
 ## 2. Regras de Uso
@@ -58,11 +65,11 @@ Este documento é obrigatório para a execução do roadmap.
 | Surface | Required | Current status | Evidence | Notes |
 |---|---|---|---|---|
 | plugin manifest acceptance | yes | `validated` | `pnpm host-real:manifest` | OpenClaw aceita `openclaw.plugin.json` + `package.json` com `openclaw.extensions` para os dois probes |
-| memory slot loading | yes | `validated` | `pnpm host-real:memory-slot` | o host carrega `probe-memory-slot`, resolve `plugins.slots.memory`, marca o plugin como slot selecionado e sobe o gateway com ele ativo |
-| context engine slot loading | yes | `validated` | `pnpm host-real:context-slot` | o host carrega `probe-context-engine-slot`, aceita `plugins.slots.contextEngine` e registra o engine em runtime real |
-| Active Memory seam discovery | yes | `partially_validated` | `pnpm host-real:active-memory` | a chave `plugins.entries.active-memory` é aceita e o plugin bundled existe na versão-alvo; o blocking pre-reply path ainda não foi observado ponta a ponta |
-| recommended mode automatic recall | yes | `pending` | planned in `docs/TEST_STRATEGY.md` | depende dos plugins reais `memory-mempalace` + `claw-context-mempalace` |
-| full mode automatic recall | conditional | `pending` | planned in `docs/TEST_STRATEGY.md` | depende dos plugins reais e da conclusão do path Active Memory |
+| memory slot loading | yes | `validated` | `pnpm host-real:memory-slot` | o host carrega `probe-memory-slot`, resolve `plugins.slots.memory`, marca o plugin como slot selecionado e sobe o gateway com ele ativo; ver também [MEMORY_RUNTIME.md](MEMORY_RUNTIME.md) |
+| context engine slot loading | yes | `validated` | `pnpm host-real:context-slot` | o host carrega `probe-context-engine-slot`, aceita `plugins.slots.contextEngine` e registra o engine em runtime real; ver também [CONTEXT_ENGINE.md](CONTEXT_ENGINE.md) |
+| Active Memory seam discovery | yes | `partially_validated` | `pnpm host-real:active-memory` | a chave `plugins.entries.active-memory` é aceita e o plugin bundled existe na versão-alvo; o blocking pre-reply path ainda não foi observado ponta a ponta; ver também [ACTIVE_MEMORY.md](ACTIVE_MEMORY.md) |
+| recommended mode automatic recall | yes | `pending` | planned in [TEST_STRATEGY.md](TEST_STRATEGY.md) | depende dos plugins reais `memory-mempalace` + `claw-context-mempalace` e da prova observável definida na estratégia de testes |
+| full mode automatic recall | conditional | `pending` | planned in [TEST_STRATEGY.md](TEST_STRATEGY.md) | depende dos plugins reais e da conclusão do path Active Memory |
 
 ---
 
@@ -151,7 +158,7 @@ Este documento é obrigatório para a execução do roadmap.
 - `validated` nesta etapa prova o seam do host, não a integração com MemPalace.
 - Em `openclaw@2026.4.14`, selecionar um memory slot externo desativa `memory-core`. Como `memory-core` é dono da árvore CLI `openclaw memory`, essa árvore não é um harness válido para plugins externos nesta etapa.
 - O seam de Active Memory está **disponível e configurável** em `2026.4.14`, mas o blocking pre-reply recall ainda não foi provado com MemPalace nem com os plugins finais.
-- A prova de recall automático continua bloqueada nas Etapas 3, 5 e 9, quando o runtime real e o harness canônico existirem.
+- A prova de recall automático continua bloqueada até que o runtime real e o harness canônico existam; o desenho alvo desse harness está em [TEST_STRATEGY.md](TEST_STRATEGY.md), e os contratos dependentes estão em [MEMORY_RUNTIME.md](MEMORY_RUNTIME.md), [CONTEXT_ENGINE.md](CONTEXT_ENGINE.md) e [ACTIVE_MEMORY.md](ACTIVE_MEMORY.md).
 
 ---
 
