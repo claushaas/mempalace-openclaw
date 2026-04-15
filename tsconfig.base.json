@@ -3,6 +3,7 @@
 		"declaration": true,
 		"declarationMap": true,
 		"exactOptionalPropertyTypes": true,
+		"ignoreDeprecations": "6.0",
 		"isolatedModules": true,
 		"lib": ["ES2023"],
 		"module": "NodeNext",

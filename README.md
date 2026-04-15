@@ -59,7 +59,7 @@ Separação de responsabilidades:
 | --- | --- | --- |
 | `memory-mempalace` | plugin real de memory slot e adapter entre OpenClaw e MemPalace | ainda não implementado |
 | `context-engine-mempalace` | plugin real de context engine para budget, pruning e injeção com provenance | ainda não implementado |
-| `shared` | tipos, schemas e contratos comuns do runtime, hooks e sync | ainda não implementado |
+| `shared` | tipos, schemas e contratos comuns do runtime, hooks e sync | implementado |
 | `sync-daemon` | ingestão operacional, `sync.db`, spool e sincronização de fontes externas | ainda não implementado |
 | `skill-mempalace-sync` | surface operacional para adicionar, listar, rodar e reindexar sources | ainda não implementado |
 
@@ -138,12 +138,12 @@ O que já está fechado:
 - slot de context engine validado com probe
 - caminho de configuração de Active Memory investigado e classificado
 - contratos operacionais documentados por subsistema
+- package `@mempalace-openclaw/shared` com schemas, tipos, erros e utilidades canônicas
 
 O que ainda não existe:
 
 - `packages/memory-mempalace`
 - `packages/context-engine-mempalace`
-- `packages/shared`
 - `packages/sync-daemon`
 - `packages/skill-mempalace-sync`
 - prova observável de recall automático com MemPalace real

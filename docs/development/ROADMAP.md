@@ -1191,8 +1191,8 @@ Fechar o ciclo de execução com scripts operacionais, validação automatizada 
 |---|---|---|---|
 | 0 | Bootstrap do monorepo | concluída | base buildável/testável |
 | 0A | Validação host-real do seam | concluída | compatibilidade pinada e auditável |
-| 1 | Documentação-base obrigatória | não iniciada | docs operacionais completos |
-| 2 | `packages/shared` | não iniciada | contratos e schemas canônicos |
+| 1 | Documentação-base obrigatória | concluída | docs operacionais completos |
+| 2 | `packages/shared` | concluída | contratos e schemas canônicos |
 | 3 | `packages/memory-mempalace` | não iniciada | runtime replacement funcional |
 | 4 | Hooks + spool + ingest básico | não iniciada | captura assíncrona ponta a ponta |
 | 5 | Context engine + Active Memory | não iniciada | injeção disciplinada de contexto e prova de recall |
