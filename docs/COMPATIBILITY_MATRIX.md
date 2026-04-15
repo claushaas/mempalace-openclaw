@@ -68,6 +68,7 @@ Documentos operacionais relacionados:
 | plugin manifest acceptance | yes | `validated` | `pnpm host-real:manifest` | OpenClaw aceita `openclaw.plugin.json` + `package.json` com `openclaw.extensions` para os dois probes |
 | memory slot loading | yes | `validated` | `pnpm host-real:memory-slot` | o host carrega `probe-memory-slot`, resolve `plugins.slots.memory`, marca o plugin como slot selecionado e sobe o gateway com ele ativo; ver também [MEMORY_RUNTIME.md](MEMORY_RUNTIME.md) |
 | final memory runtime plugin loading | yes | `validated` | `pnpm host-real:memory-mempalace` | o host carrega `memory-mempalace`, aceita a config MCP stdio, marca `memorySlotSelected: true` e sobe o gateway com o package final ativo; ver também [MEMORY_RUNTIME.md](MEMORY_RUNTIME.md) |
+| hook pack loading + spool ingest path | yes | `validated` | `pnpm host-real:mempalace-ingest-hooks` | o host instala `mempalace-ingest-hooks`, descobre os hooks, escreve spool em evento real, processa o spool, promove memória no backend smoke e deixa o resultado consultável pelo runtime; ver também [HOOKS.md](HOOKS.md) |
 | context engine slot loading | yes | `validated` | `pnpm host-real:context-slot` | o host carrega `probe-context-engine-slot`, aceita `plugins.slots.contextEngine` e registra o engine em runtime real; ver também [CONTEXT_ENGINE.md](CONTEXT_ENGINE.md) |
 | Active Memory seam discovery | yes | `partially_validated` | `pnpm host-real:active-memory` | a chave `plugins.entries.active-memory` é aceita e o plugin bundled existe na versão-alvo; o blocking pre-reply path ainda não foi observado ponta a ponta; ver também [ACTIVE_MEMORY.md](ACTIVE_MEMORY.md) |
 | recommended mode automatic recall | yes | `pending` | planned in [TEST_STRATEGY.md](TEST_STRATEGY.md) | depende dos plugins reais `memory-mempalace` + `claw-context-mempalace` e da prova observável definida na estratégia de testes |
@@ -163,6 +164,19 @@ Documentos operacionais relacionados:
   - `plugins inspect` marcando `memorySlotSelected: true` e `activationReason: "selected memory slot"`;
   - bootstrap do gateway com `memory-mempalace` listado entre os plugins ativos;
   - JSONL de evidência do package final em `.tmp/host-real-results/memory-mempalace.jsonl`.
+
+### 7.7 Hook pack `mempalace-ingest-hooks`
+
+- comando: `pnpm host-real:mempalace-ingest-hooks`
+- relatório: `.tmp/host-real-results/host-real-mempalace-ingest-hooks.json`
+- prova produzida:
+  - instalação linkada do hook pack `packages/mempalace-ingest-hooks`;
+  - descoberta real dos hooks via `openclaw hooks list --json`;
+  - captura host-real do evento `command:new`;
+  - criação de arquivo no spool local;
+  - processamento embutido para `processed/`;
+  - promoção do conteúdo no shim MCP com estado persistido;
+  - consulta bem-sucedida do conteúdo pelo runtime de memória usando o mesmo backend smoke.
 
 ---
 

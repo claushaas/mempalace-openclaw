@@ -1,0 +1,15 @@
+{
+	"name": "@mempalace-openclaw/mempalace-ingest-hooks",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"openclaw": {
+		"hooks": [
+			"./mempalace-session-spool",
+			"./mempalace-startup-drain"
+		]
+	},
+	"scripts": {
+		"test": "vitest run"
+	}
+}

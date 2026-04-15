@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -17,9 +17,16 @@ export const MEMORY_PROBE_DIR = path.join(FIXTURES_DIR, 'probe-memory-slot');
 export const CONTEXT_PROBE_DIR = path.join(FIXTURES_DIR, 'probe-context-engine-slot');
 export const MEMPALACE_MCP_SHIM_PATH = path.join(FIXTURES_DIR, 'mempalace-mcp-shim.mjs');
 export const MEMORY_MEMPALACE_DIR = path.join(ROOT_DIR, 'packages', 'memory-mempalace');
+export const MEMPALACE_INGEST_HOOKS_DIR = path.join(
+	ROOT_DIR,
+	'packages',
+	'mempalace-ingest-hooks',
+);
 export const MEMORY_PROBE_ID = 'probe-memory-slot';
 export const CONTEXT_PROBE_ID = 'probe-context-engine-slot';
 export const MEMORY_MEMPALACE_ID = 'memory-mempalace';
+export const MEMPALACE_INGEST_HOOKS_ID = '@mempalace-openclaw/mempalace-ingest-hooks';
+export const MEMPALACE_INGEST_HOOK_EVIDENCE_ID = 'mempalace-ingest-hooks';
 
 export function hostEnv(extraEnv = {}) {
 	return {
@@ -81,8 +88,13 @@ export function runCommand(command, args, options = {}) {
 		cwd: ROOT_DIR,
 		encoding: 'utf8',
 		env: options.env ?? process.env,
-		stdio: 'pipe'
+		stdio: 'pipe',
+		timeout: options.timeoutMs,
 	});
+
+	if (result.error?.code === 'ETIMEDOUT') {
+		throw new Error(`Command timed out: ${command} ${args.join(' ')}`);
+	}
 
 	if (result.status !== 0) {
 		const details = [
@@ -106,6 +118,32 @@ export function runOpenClaw(args, options = {}) {
 		...options,
 		env: hostEnv(options.extraEnv)
 	});
+}
+
+export function spawnOpenClaw(args, options = {}) {
+	const child = spawn('pnpm', ['exec', 'openclaw', ...args], {
+		cwd: ROOT_DIR,
+		encoding: 'utf8',
+		env: hostEnv(options.extraEnv),
+		stdio: 'pipe',
+	});
+	let stdout = '';
+	let stderr = '';
+	child.stdout.setEncoding('utf8');
+	child.stderr.setEncoding('utf8');
+	child.stdout.on('data', (chunk) => {
+		stdout += chunk;
+	});
+	child.stderr.on('data', (chunk) => {
+		stderr += chunk;
+	});
+
+	return {
+		child,
+		getOutput() {
+			return { stderr, stdout };
+		},
+	};
 }
 
 export function bootstrapHostEnvironment() {
@@ -184,6 +222,12 @@ export function readProbeEvidence(pluginId) {
 		.split('\n')
 		.filter(Boolean)
 		.map((line) => JSON.parse(line));
+}
+
+export async function wait(ms) {
+	return new Promise((resolve) => {
+		setTimeout(resolve, ms);
+	});
 }
 
 export function buildBaseReport(name, extra = {}) {

@@ -39,7 +39,9 @@ OpenClaw host
     -> recall automático forte quando suportado
   -> hooks
     -> spool local append-only
+    -> processador embutido na Etapa 4
   -> sync-daemon
+    -> substitui o processor embutido nas etapas posteriores
     -> processa spool e fontes externas
     -> atualiza MemPalace e dispara refresh
 ```
@@ -60,6 +62,7 @@ Separação de responsabilidades:
 | `memory-mempalace` | plugin real de memory slot e adapter entre OpenClaw e MemPalace | implementado |
 | `context-engine-mempalace` | plugin real de context engine para budget, pruning e injeção com provenance | ainda não implementado |
 | `shared` | tipos, schemas e contratos comuns do runtime, hooks e sync | implementado |
+| `mempalace-ingest-hooks` | hook pack real para captura, spool local e ingestão básica não bloqueante | implementado |
 | `sync-daemon` | ingestão operacional, `sync.db`, spool e sincronização de fontes externas | ainda não implementado |
 | `skill-mempalace-sync` | surface operacional para adicionar, listar, rodar e reindexar sources | ainda não implementado |
 
@@ -109,6 +112,7 @@ Scripts disponíveis:
 - `pnpm host-real:manifest`
 - `pnpm host-real:memory-slot`
 - `pnpm host-real:memory-mempalace`
+- `pnpm host-real:mempalace-ingest-hooks`
 - `pnpm host-real:context-slot`
 - `pnpm host-real:active-memory`
 - `pnpm host-real:all`
@@ -138,6 +142,7 @@ O que já está fechado:
 - manifest real aceito pelo host
 - slot de memória validado com probe
 - plugin final `memory-mempalace` implementado e validado em host real com MCP shim local
+- hook pack `mempalace-ingest-hooks` implementado e validado em host real com spool local e processador embutido
 - slot de context engine validado com probe
 - caminho de configuração de Active Memory investigado e classificado
 - contratos operacionais documentados por subsistema

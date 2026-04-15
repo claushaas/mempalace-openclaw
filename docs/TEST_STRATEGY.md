@@ -55,7 +55,7 @@ O contrato alvo dessas superfícies está congelado em [MEMORY_RUNTIME.md](MEMOR
 
 Cobrem:
 
-- hooks -> spool -> daemon -> MemPalace -> runtime;
+- hooks -> spool -> processor -> MemPalace -> runtime;
 - runtime -> context engine;
 - config examples -> validação -> boot mínimo;
 - refresh e status do runtime.
@@ -192,6 +192,26 @@ Limite:
 
 - este harness usa `fixtures/host-real/mempalace-mcp-shim.mjs` como backend MemPalace MCP local;
 - ele prova slot loading e bootstrap do runtime final, não prova ainda recall automático pré-resposta.
+
+### 3.8 `pnpm host-real:mempalace-ingest-hooks`
+
+Prova:
+
+- o hook pack real instala em host OpenClaw;
+- `openclaw hooks list --json` e `openclaw hooks check --json` descobrem os hooks da Etapa 4;
+- um evento host-real suportado escreve envelope no spool;
+- o processador embutido consome o spool, promove conteúdo no MemPalace MCP e dispara refresh;
+- o conteúdo ingerido fica consultável pelo runtime `memory-mempalace` usando o mesmo estado persistido do backend smoke.
+
+Artefatos:
+
+- `.tmp/host-real-results/host-real-mempalace-ingest-hooks.json`
+- `.tmp/host-real-results/mempalace-ingest-hooks.jsonl`
+
+Limite:
+
+- este harness prova captura, spool, ingestão e refresh observáveis;
+- ele não prova recall automático pré-resposta.
 
 ---
 

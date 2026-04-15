@@ -1,52 +1,44 @@
 import fs from 'node:fs';
+import path from 'node:path';
 
-const artifacts = new Map([
-	[
-		'artifact-decision',
-		{
-			artifactId: 'artifact-decision',
-			classification: 'decision',
-			content:
-				'Use MCP as the backend seam for the OpenClaw memory runtime.',
-			memoryType: 'facts',
-			source: 'repo-main',
-			sourcePath: '/repo/decision.md',
-			sourceType: 'filesystem',
-			title: 'Backend seam decision',
-			updatedAt: '2026-04-15T12:00:00Z',
-		},
-	],
-	[
-		'artifact-conversation',
-		{
-			artifactId: 'artifact-conversation',
-			classification: 'conversation',
-			content: 'Conversation about the gateway memory slot and ranking.',
-			memoryType: 'events',
-			source: 'session-log',
-			sourcePath: '/sessions/thread.md',
-			sourceType: 'sessions',
-			title: 'Gateway slot conversation',
-			updatedAt: '2026-04-14T12:00:00Z',
-		},
-	],
-	[
-		'artifact-external',
-		{
-			artifactId: 'artifact-external',
-			classification: 'artifact',
-			content: 'External artifact with structural context for code recall.',
-			memoryType: 'discoveries',
-			source: 'obsidian-main',
-			sourcePath: '/vault/design.md',
-			sourceType: 'filesystem',
-			title: 'Design note',
-			updatedAt: '2026-04-13T12:00:00Z',
-		},
-	],
-]);
+const DEFAULT_ARTIFACTS = [
+	{
+		artifactId: 'artifact-decision',
+		classification: 'decision',
+		content:
+			'Use MCP as the backend seam for the OpenClaw memory runtime.',
+		memoryType: 'facts',
+		source: 'repo-main',
+		sourcePath: '/repo/decision.md',
+		sourceType: 'filesystem',
+		title: 'Backend seam decision',
+		updatedAt: '2026-04-15T12:00:00Z',
+	},
+	{
+		artifactId: 'artifact-conversation',
+		classification: 'conversation',
+		content: 'Conversation about the gateway memory slot and ranking.',
+		memoryType: 'events',
+		source: 'session-log',
+		sourcePath: '/sessions/thread.md',
+		sourceType: 'sessions',
+		title: 'Gateway slot conversation',
+		updatedAt: '2026-04-14T12:00:00Z',
+	},
+	{
+		artifactId: 'artifact-external',
+		classification: 'artifact',
+		content: 'External artifact with structural context for code recall.',
+		memoryType: 'discoveries',
+		source: 'obsidian-main',
+		sourcePath: '/vault/design.md',
+		sourceType: 'filesystem',
+		title: 'Design note',
+		updatedAt: '2026-04-13T12:00:00Z',
+	},
+];
 
-const sources = [
+const DEFAULT_SOURCES = [
 	{
 		enabled: true,
 		kind: 'filesystem',
@@ -63,7 +55,42 @@ const sources = [
 	},
 ];
 
-let lastRefreshAt = '2026-04-15T12:00:00Z';
+const DEFAULT_LAST_REFRESH_AT = '2026-04-15T12:00:00Z';
+const statePath = process.env.MEMPALACE_MCP_SHIM_STATE_PATH;
+
+function buildDefaultState() {
+	return {
+		artifacts: Object.fromEntries(
+			DEFAULT_ARTIFACTS.map((artifact) => [artifact.artifactId, artifact]),
+		),
+		lastRefreshAt: DEFAULT_LAST_REFRESH_AT,
+		sources: DEFAULT_SOURCES,
+	};
+}
+
+function ensureStateDir() {
+	if (!statePath) {
+		return;
+	}
+	fs.mkdirSync(path.dirname(statePath), { recursive: true });
+}
+
+function readState() {
+	if (!statePath || !fs.existsSync(statePath)) {
+		return buildDefaultState();
+	}
+	return JSON.parse(fs.readFileSync(statePath, 'utf8'));
+}
+
+function writeState(nextState) {
+	if (!statePath) {
+		return;
+	}
+	ensureStateDir();
+	fs.writeFileSync(statePath, `${JSON.stringify(nextState, null, 2)}\n`);
+}
+
+let state = readState();
 
 function writeMessage(message) {
 	const encoded = JSON.stringify(message);
@@ -134,7 +161,7 @@ function searchArtifacts(query, limit = 8) {
 	const normalizedQuery = String(query ?? '').toLowerCase();
 	const terms = normalizedQuery.split(/\s+/).filter(Boolean);
 
-	const results = [...artifacts.values()]
+	const results = Object.values(state.artifacts)
 		.map((artifact) => {
 			const haystack = [
 				artifact.title,
@@ -174,7 +201,7 @@ function handleToolCall(id, params) {
 			respondTool(id, searchArtifacts(args.query, args.limit));
 			return;
 		case 'mempalace_get_drawer': {
-			const artifact = artifacts.get(args.artifactId);
+			const artifact = state.artifacts[args.artifactId];
 			if (!artifact) {
 				respondError(id, -32004, `Artifact not found: ${args.artifactId}`);
 				return;
@@ -194,12 +221,23 @@ function handleToolCall(id, params) {
 				sourceType: 'manual',
 				updatedAt: new Date().toISOString(),
 			};
-			artifacts.set(artifactId, artifact);
+			state = {
+				...state,
+				artifacts: {
+					...state.artifacts,
+					[artifactId]: artifact,
+				},
+			};
+			writeState(state);
 			respondTool(id, artifact);
 			return;
 		}
 		case 'mempalace_refresh_index':
-			lastRefreshAt = new Date().toISOString();
+			state = {
+				...state,
+				lastRefreshAt: new Date().toISOString(),
+			};
+			writeState(state);
 			respondTool(id, {
 				accepted: true,
 				force: Boolean(args.force),
@@ -212,10 +250,10 @@ function handleToolCall(id, params) {
 			respondTool(id, {
 				health: {
 					backendReachable: true,
-					lastRefreshAt,
+					lastRefreshAt: state.lastRefreshAt,
 					status: 'ready',
 				},
-				sources,
+				sources: state.sources,
 			});
 			return;
 		default:

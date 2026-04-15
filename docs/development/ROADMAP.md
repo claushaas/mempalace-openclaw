@@ -679,53 +679,63 @@ Implementar a trilha mínima de captura assíncrona e desacoplada do loop princi
 
 ### Entregáveis
 
-- modelagem do envelope de hook
+- hook pack real instalável no OpenClaw
 - diretório de spool local
 - normalizador de sessão
+- processador embutido de spool
 - pipeline básico de ingestão ponta a ponta
 
 ### Implementação
 
 1. Definir spool local, por padrão, em área ignorada pelo Git.
-2. Criar `HookEnvelope` versionado contendo:
+2. Preservar `HookEnvelope` canônico de `packages/shared`, contendo:
+   - `version`
    - `event`
    - `sessionId`
+   - `agentId`
    - `timestamp`
-   - `source`
    - `payload`
-   - `fingerprint`
-   - `version`
-3. Implementar eventos mínimos:
-   - `/new`
-   - `/reset`
-   - `stop`
-   - `pre-compact`
-   - `end-of-session`
-   - `milestone`
-   - `scheduled-sync`
-   - `post-ingest-refresh`
-4. Garantir que hooks façam apenas:
+   - `idempotencyKey`
+3. Introduzir `SpoolRecord` interno, separado do contrato público, contendo:
+   - `envelope`
+   - `sourceFingerprint`
+   - `writtenAt`
+   - `hookSource`
+   - `processingState`
+4. Mapear eventos documentais para eventos host-reais:
+   - `/new` -> `command:new`
+   - `/reset` -> `command:reset`
+   - `stop` -> `command:stop`
+   - `pre-compact` -> `session:compact:before`
+5. Tratar `end-of-session`, `scheduled-sync` e `post-ingest-refresh` como eventos internos do pipeline local até existir seam host-real comprovado para eles.
+6. Implementar, no mínimo, hooks host-reais para:
+   - captura de sessão/comando
+   - dreno de spool no startup do gateway
+7. Garantir que hooks façam apenas:
    - captura
    - flush
    - enqueue
    - refresh trigger
-5. Proibir inline:
+8. Proibir inline:
    - classificação pesada
    - busca de memória
    - mineração complexa
-6. Entregar primeiro fluxo v1:
+9. Entregar primeiro fluxo v1:
    - sessão exportada
    - envelope escrito no spool
    - processador lê spool
    - ingest básico no MemPalace
    - refresh de metadados
    - memória fica consultável pelo plugin
+10. Validar o fluxo com harness host-real dedicado.
 
 ### Critérios de Aceite
 
 - O loop de conversa não depende da conclusão da ingestão pesada.
-- Hooks são idempotentes por envelope/fingerprint.
+- Hooks são idempotentes por `idempotencyKey` e `sourceFingerprint`.
 - O caminho hook -> spool -> ingest -> refresh é verificável por logs.
+- O hook pack é descoberto e carregado em host OpenClaw real.
+- O fluxo `command:new` ou equivalente host-real gera spool, processamento e ingest observáveis.
 
 ### Riscos Principais
 
@@ -1194,7 +1204,7 @@ Fechar o ciclo de execução com scripts operacionais, validação automatizada 
 | 1 | Documentação-base obrigatória | concluída | docs operacionais completos |
 | 2 | `packages/shared` | concluída | contratos e schemas canônicos |
 | 3 | `packages/memory-mempalace` | concluída | runtime replacement funcional |
-| 4 | Hooks + spool + ingest básico | não iniciada | captura assíncrona ponta a ponta |
+| 4 | Hooks + spool + ingest básico | concluída | hook pack real, spool local e ingestão ponta a ponta |
 | 5 | Context engine + Active Memory | não iniciada | injeção disciplinada de contexto e prova de recall |
 | 6 | Sync daemon + skill + infra | não iniciada | ingestão contínua operacional |
 | 7 | Robustez, ranking e failure modes | não iniciada | qualidade e resiliência |
@@ -1214,6 +1224,7 @@ Fechar o ciclo de execução com scripts operacionais, validação automatizada 
 | `packages/shared` | docs operacionais, compat matrix | todos os packages executáveis |
 | `packages/memory-mempalace` | `shared`, compat matrix | context engine, hooks, exemplos |
 | hooks/spool | `shared`, runtime core | fluxo de ingest v1 |
+| `packages/mempalace-ingest-hooks` | `shared`, runtime core | hook pack real e processador embutido |
 | `packages/context-engine-mempalace` | runtime core, compat matrix | injeção pré-resposta de alta qualidade |
 | Active Memory enablement | runtime core, docs, eventualmente context engine | runtime conversacional completo |
 | `packages/sync-daemon` | `shared`, hooks/spool | skill, infra, sync contínuo |

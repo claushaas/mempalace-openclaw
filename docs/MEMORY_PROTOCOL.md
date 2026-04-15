@@ -72,6 +72,20 @@ Regras:
 - envelopes devem ser versionados;
 - envelopes devem ser auditáveis;
 - envelopes devem permitir reprocessamento idempotente.
+- `HookEnvelope` é contrato público compartilhado.
+- `sourceFingerprint` não faz parte do envelope público; ele pertence ao `SpoolRecord` interno do pipeline de ingestão.
+
+Registro interno mínimo de spool:
+
+```json
+{
+  "envelope": {},
+  "sourceFingerprint": "sha256...",
+  "writtenAt": "2026-04-15T12:00:01Z",
+  "hookSource": "host-event",
+  "processingState": "pending"
+}
+```
 
 ## Fluxo Entre Packages
 
@@ -80,7 +94,8 @@ Fluxo lógico alvo:
 ```text
 hooks
   -> hook envelope
-  -> sync-daemon
+  -> spool record
+  -> processor embutido
   -> MemPalace
   -> memory-mempalace
   -> context-engine-mempalace
@@ -93,6 +108,8 @@ Responsabilidades por contrato:
   - materializar tipos, enums e schemas.
 - `sync-daemon`
   - operar sobre `source`, `sync job`, `hook envelope`.
+- `mempalace-ingest-hooks`
+  - operar sobre `hook envelope` e `spool record` para captura e ingestão mínima.
 - `memory-mempalace`
   - operar sobre `query`, `result`, `artifact`, `runtime health`.
 - `context-engine-mempalace`
