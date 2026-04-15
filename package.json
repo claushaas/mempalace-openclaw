@@ -18,6 +18,7 @@
 		"host-real:bootstrap": "node ./scripts/host-real/bootstrap.mjs",
 		"host-real:manifest": "node ./scripts/host-real/manifest.mjs",
 		"host-real:memory-slot": "node ./scripts/host-real/memory-slot.mjs",
+		"host-real:memory-mempalace": "node ./scripts/host-real/memory-mempalace.mjs",
 		"host-real:context-slot": "node ./scripts/host-real/context-slot.mjs",
 		"host-real:active-memory": "node ./scripts/host-real/active-memory.mjs",
 		"host-real:all": "node ./scripts/host-real/all.mjs",

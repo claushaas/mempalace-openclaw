@@ -34,7 +34,8 @@ Documentos operacionais relacionados:
   - `blocked`
   - `pending`
 - Se o comportamento real divergir da documentação oficial, o comportamento real do host prevalece para a implementação.
-- Status `validated` nesta etapa significa que o seam foi exercitado por harness host-real. Não significa que os plugins finais `memory-mempalace` e `claw-context-mempalace` já existam.
+- Status `validated` nesta etapa significa que o seam foi exercitado por harness host-real.
+- As notas de cada surface deixam explícito se a evidência vem de probes de validação ou do package final do produto.
 
 ---
 
@@ -42,7 +43,7 @@ Documentos operacionais relacionados:
 
 | OpenClaw version | Status | Date | Install method | Notes |
 |---|---|---|---|---|
-| `2026.4.14` | `partially_validated` | `2026-04-14` | npm package `openclaw` | versão canônica da Etapa 0A; seams de manifest, memory slot e context engine validados com probes; Active Memory parcialmente validado |
+| `2026.4.14` | `partially_validated` | `2026-04-15` | npm package `openclaw` | versão canônica; seams de manifest, memory slot e context engine validados; plugin final `memory-mempalace` validado com MCP shim local; Active Memory ainda parcialmente validado |
 
 ---
 
@@ -56,7 +57,7 @@ Documentos operacionais relacionados:
 | host temporário | `.tmp/openclaw-host/` |
 | resultados temporários | `.tmp/host-real-results/` |
 | scripts de execução | `pnpm host-real:*` |
-| probes rastreados | `fixtures/host-real/probe-memory-slot`, `fixtures/host-real/probe-context-engine-slot` |
+| probes e harnesses rastreados | `fixtures/host-real/probe-memory-slot`, `fixtures/host-real/probe-context-engine-slot`, `packages/memory-mempalace`, `fixtures/host-real/mempalace-mcp-shim.mjs` |
 
 ---
 
@@ -66,6 +67,7 @@ Documentos operacionais relacionados:
 |---|---|---|---|---|
 | plugin manifest acceptance | yes | `validated` | `pnpm host-real:manifest` | OpenClaw aceita `openclaw.plugin.json` + `package.json` com `openclaw.extensions` para os dois probes |
 | memory slot loading | yes | `validated` | `pnpm host-real:memory-slot` | o host carrega `probe-memory-slot`, resolve `plugins.slots.memory`, marca o plugin como slot selecionado e sobe o gateway com ele ativo; ver também [MEMORY_RUNTIME.md](MEMORY_RUNTIME.md) |
+| final memory runtime plugin loading | yes | `validated` | `pnpm host-real:memory-mempalace` | o host carrega `memory-mempalace`, aceita a config MCP stdio, marca `memorySlotSelected: true` e sobe o gateway com o package final ativo; ver também [MEMORY_RUNTIME.md](MEMORY_RUNTIME.md) |
 | context engine slot loading | yes | `validated` | `pnpm host-real:context-slot` | o host carrega `probe-context-engine-slot`, aceita `plugins.slots.contextEngine` e registra o engine em runtime real; ver também [CONTEXT_ENGINE.md](CONTEXT_ENGINE.md) |
 | Active Memory seam discovery | yes | `partially_validated` | `pnpm host-real:active-memory` | a chave `plugins.entries.active-memory` é aceita e o plugin bundled existe na versão-alvo; o blocking pre-reply path ainda não foi observado ponta a ponta; ver também [ACTIVE_MEMORY.md](ACTIVE_MEMORY.md) |
 | recommended mode automatic recall | yes | `pending` | planned in [TEST_STRATEGY.md](TEST_STRATEGY.md) | depende dos plugins reais `memory-mempalace` + `claw-context-mempalace` e da prova observável definida na estratégia de testes |
@@ -149,6 +151,18 @@ Documentos operacionais relacionados:
 
 - comando: `pnpm host-real:all`
 - função: roda a suíte da Etapa 0A em sequência e regrava todos os relatórios temporários.
+
+### 7.6 Package final `memory-mempalace`
+
+- comando: `pnpm host-real:memory-mempalace`
+- relatório: `.tmp/host-real-results/host-real-memory-mempalace.json`
+- prova produzida:
+  - build real do monorepo antes da instalação host-real;
+  - instalação linkada do package final `packages/memory-mempalace`;
+  - config isolada com `plugins.slots.memory = "memory-mempalace"` e backend MCP stdio apontando para `fixtures/host-real/mempalace-mcp-shim.mjs`;
+  - `plugins inspect` marcando `memorySlotSelected: true` e `activationReason: "selected memory slot"`;
+  - bootstrap do gateway com `memory-mempalace` listado entre os plugins ativos;
+  - JSONL de evidência do package final em `.tmp/host-real-results/memory-mempalace.jsonl`.
 
 ---
 

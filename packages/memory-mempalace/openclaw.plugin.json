@@ -1,0 +1,49 @@
+{
+	"configSchema": {
+		"additionalProperties": false,
+		"properties": {
+			"args": {
+				"items": {
+					"type": "string"
+				},
+				"type": "array"
+			},
+			"command": {
+				"minLength": 1,
+				"type": "string"
+			},
+			"cwd": {
+				"minLength": 1,
+				"type": "string"
+			},
+			"defaultResultLimit": {
+				"minimum": 1,
+				"type": "integer"
+			},
+			"defaultTokenBudget": {
+				"minimum": 1,
+				"type": "integer"
+			},
+			"env": {
+				"additionalProperties": {
+					"type": "string"
+				},
+				"type": "object"
+			},
+			"timeoutMs": {
+				"minimum": 1,
+				"type": "integer"
+			},
+			"transport": {
+				"enum": ["stdio"],
+				"type": "string"
+			}
+		},
+		"type": "object"
+	},
+	"description": "MemPalace-backed replacement runtime for the OpenClaw memory slot.",
+	"id": "memory-mempalace",
+	"kind": "memory",
+	"name": "MemPalace Memory Runtime",
+	"version": "0.0.0"
+}

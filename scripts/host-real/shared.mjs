@@ -15,8 +15,11 @@ export const HOST_CONFIG_PATH = path.join(HOST_ROOT_DIR, 'openclaw.json');
 export const FIXTURES_DIR = path.join(ROOT_DIR, 'fixtures', 'host-real');
 export const MEMORY_PROBE_DIR = path.join(FIXTURES_DIR, 'probe-memory-slot');
 export const CONTEXT_PROBE_DIR = path.join(FIXTURES_DIR, 'probe-context-engine-slot');
+export const MEMPALACE_MCP_SHIM_PATH = path.join(FIXTURES_DIR, 'mempalace-mcp-shim.mjs');
+export const MEMORY_MEMPALACE_DIR = path.join(ROOT_DIR, 'packages', 'memory-mempalace');
 export const MEMORY_PROBE_ID = 'probe-memory-slot';
 export const CONTEXT_PROBE_ID = 'probe-context-engine-slot';
+export const MEMORY_MEMPALACE_ID = 'memory-mempalace';
 
 export function hostEnv(extraEnv = {}) {
 	return {
@@ -30,6 +33,29 @@ export function hostEnv(extraEnv = {}) {
 
 export function ensureDir(dirPath) {
 	fs.mkdirSync(dirPath, { recursive: true });
+}
+
+export async function withTemporarilyDetachedNodeModules(pluginDir, callback) {
+	const nodeModulesPath = path.join(pluginDir, 'node_modules');
+	if (!fs.existsSync(nodeModulesPath)) {
+		return callback();
+	}
+
+	const stashRoot = path.join(ROOT_DIR, '.tmp', 'detached-node-modules');
+	ensureDir(stashRoot);
+	const stashPath = path.join(
+		stashRoot,
+		`${path.basename(pluginDir)}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+	);
+
+	fs.renameSync(nodeModulesPath, stashPath);
+	try {
+		return await callback();
+	} finally {
+		if (fs.existsSync(stashPath)) {
+			fs.renameSync(stashPath, nodeModulesPath);
+		}
+	}
 }
 
 export function readJson(filePath) {
@@ -132,8 +158,12 @@ export function updateHostConfig(mutator) {
 	return nextConfig;
 }
 
-export function ensureProbeInstalled(pluginDir) {
+export function ensureLinkedPluginInstalled(pluginDir) {
 	return runOpenClaw(['plugins', 'install', '--link', '--dangerously-force-unsafe-install', pluginDir]);
+}
+
+export function ensureProbeInstalled(pluginDir) {
+	return ensureLinkedPluginInstalled(pluginDir);
 }
 
 export function inspectPlugin(pluginId) {

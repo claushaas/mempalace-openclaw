@@ -78,9 +78,9 @@ Os limites atualmente observados do host-alvo estão em [COMPATIBILITY_MATRIX.md
 
 ## 3. Harnesses Host-Real da Etapa 0A
 
-Os harnesses abaixo existem para fechar o seam com OpenClaw antes da implementação profunda dos packages do produto.
+Os harnesses abaixo existem para fechar o seam com OpenClaw antes e durante a implementação dos packages do produto.
 
-Eles não contam como prova da futura integração `memory-mempalace` ou `claw-context-mempalace`; essa prova virá nas etapas seguintes com smoke tests e harness de recall automático.
+Os harnesses com probes não contam como prova da integração final `memory-mempalace` ou `claw-context-mempalace`. A partir da Etapa 3, `pnpm host-real:memory-mempalace` passa a contar como prova host-real do package final de memória, mas ainda não como prova de recall automático.
 
 Todos usam:
 
@@ -173,6 +173,26 @@ Função:
 - roda `bootstrap`, `manifest`, `memory-slot`, `context-slot` e `active-memory` em sequência;
 - deve ser usado antes de atualizar `docs/COMPATIBILITY_MATRIX.md` quando a versão-alvo mudar.
 
+### 3.7 `pnpm host-real:memory-mempalace`
+
+Prova:
+
+- o package final `packages/memory-mempalace` instala por link em host real;
+- o host aceita `plugins.slots.memory = "memory-mempalace"` com config MCP stdio;
+- `plugins inspect memory-mempalace --json` marca o plugin como memory slot selecionado;
+- o bootstrap do gateway sobe com `memory-mempalace` entre os plugins ativos;
+- o package final emite evidência JSONL própria.
+
+Artefatos:
+
+- `.tmp/host-real-results/host-real-memory-mempalace.json`
+- `.tmp/host-real-results/memory-mempalace.jsonl`
+
+Limite:
+
+- este harness usa `fixtures/host-real/mempalace-mcp-shim.mjs` como backend MemPalace MCP local;
+- ele prova slot loading e bootstrap do runtime final, não prova ainda recall automático pré-resposta.
+
 ---
 
 ## 4. Modos Operacionais e Smoke Tests
@@ -196,7 +216,8 @@ Status atual:
 
 Bloqueio atual:
 
-- depende do package real `packages/memory-mempalace`.
+- o package real `packages/memory-mempalace` já existe e tem harness host-real dedicado.
+- ainda falta o smoke que prove consulta útil ponta a ponta do runtime via host, e não apenas slot loading + bootstrap.
 - o contrato alvo desse runtime está em [MEMORY_RUNTIME.md](MEMORY_RUNTIME.md).
 
 ### 4.2 `recommended`

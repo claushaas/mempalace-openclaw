@@ -33,6 +33,18 @@ importers:
         specifier: ^4.1.4
         version: 4.1.4(@types/node@25.6.0)(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
 
+  packages/memory-mempalace:
+    dependencies:
+      '@mempalace-openclaw/shared':
+        specifier: workspace:*
+        version: link:../shared
+      openclaw:
+        specifier: 2026.4.14
+        version: 2026.4.14(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(@napi-rs/canvas@0.1.97)(@types/express@5.0.6)(apache-arrow@18.1.0)(typescript@6.0.2)
+      zod:
+        specifier: ^4.1.12
+        version: 4.3.6
+
   packages/shared:
     dependencies:
       zod:
