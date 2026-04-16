@@ -1,0 +1,33 @@
+{
+	"name": "@mempalace-openclaw/sync-daemon",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"main": "dist/index.js",
+	"module": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		}
+	},
+	"bin": {
+		"mempalace-sync-daemon": "dist/bin.js"
+	},
+	"scripts": {
+		"build": "tsup",
+		"test": "vitest run",
+		"typecheck": "tsc -p tsconfig.json --noEmit"
+	},
+	"dependencies": {
+		"@mempalace-openclaw/shared": "workspace:*",
+		"better-sqlite3": "^12.4.1",
+		"fast-glob": "^3.3.3",
+		"openclaw": "2026.4.14"
+	},
+	"devDependencies": {
+		"@types/better-sqlite3": "^7.6.13"
+	}
+}

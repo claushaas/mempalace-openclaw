@@ -1,0 +1,4 @@
+# Set the repository root before enabling this cron entry.
+MEMPALACE_OPENCLAW_REPO=/absolute/path/to/mempalace-openclaw
+
+*/15 * * * * cd "$MEMPALACE_OPENCLAW_REPO" && node packages/sync-daemon/dist/bin.js run-scheduled >> "$HOME/.openclaw/plugins/mempalace-openclaw/sync/logs/cron.log" 2>&1

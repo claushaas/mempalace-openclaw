@@ -43,7 +43,7 @@ Documentos operacionais relacionados:
 
 | OpenClaw version | Status | Date | Install method | Notes |
 |---|---|---|---|---|
-| `2026.4.14` | `partially_validated` | `2026-04-15` | npm package `openclaw` | versão canônica; plugins finais `memory-mempalace` e `claw-context-mempalace` validados; `recommended` com recall observável validado; `full` segue parcialmente validado por falta de evidência do pass próprio de Active Memory |
+| `2026.4.14` | `partially_validated` | `2026-04-16` | npm package `openclaw` | versão canônica; plugins finais `memory-mempalace`, `claw-context-mempalace`, `skill-mempalace-sync` e `sync-daemon` validados; `recommended` com recall observável validado; `full` segue parcialmente validado por falta de evidência do pass próprio de Active Memory |
 
 ---
 
@@ -68,9 +68,13 @@ Documentos operacionais relacionados:
 | plugin manifest acceptance | yes | `validated` | `pnpm host-real:manifest` | OpenClaw aceita `openclaw.plugin.json` + `package.json` com `openclaw.extensions` para os dois probes |
 | memory slot loading | yes | `validated` | `pnpm host-real:memory-slot` | o host carrega `probe-memory-slot`, resolve `plugins.slots.memory`, marca o plugin como slot selecionado e sobe o gateway com ele ativo; ver também [MEMORY_RUNTIME.md](MEMORY_RUNTIME.md) |
 | final memory runtime plugin loading | yes | `validated` | `pnpm host-real:memory-mempalace` | o host carrega `memory-mempalace`, aceita a config MCP stdio, marca `memorySlotSelected: true` e sobe o gateway com o package final ativo; ver também [MEMORY_RUNTIME.md](MEMORY_RUNTIME.md) |
-| hook pack loading + spool ingest path | yes | `validated` | `pnpm host-real:mempalace-ingest-hooks` | o host instala `mempalace-ingest-hooks`, descobre os hooks, escreve spool em evento real, processa o spool, promove memória no backend smoke e deixa o resultado consultável pelo runtime; ver também [HOOKS.md](HOOKS.md) |
+| hook pack loading + spool enqueue path | yes | `validated` | `pnpm host-real:mempalace-ingest-hooks` | o host instala `mempalace-ingest-hooks`, descobre os hooks e escreve spool em evento real; a Etapa 6 transfere o processamento para o `sync-daemon`; ver também [HOOKS.md](HOOKS.md) |
 | context engine slot loading | yes | `validated` | `pnpm host-real:context-slot` | o host carrega `probe-context-engine-slot`, aceita `plugins.slots.contextEngine` e registra o engine em runtime real; ver também [CONTEXT_ENGINE.md](CONTEXT_ENGINE.md) |
 | final context engine plugin loading | yes | `validated` | `pnpm host-real:context-engine-mempalace` | o host carrega `claw-context-mempalace`, aceita a config final, registra o engine real e sobe o gateway com o package final ativo |
+| sync skill plugin loading | yes | `validated` | `pnpm host-real:skill-mempalace-sync` | o host carrega `skill-mempalace-sync`, descobre os seis comandos públicos e a root CLI `mempalace-sync` |
+| filesystem source sync | yes | `validated` | `pnpm host-real:sync-filesystem` | source `filesystem` real gera `sync.db`, `runtime_refresh`, artefatos promovidos e recall consultável |
+| git source sync | yes | `validated` | `pnpm host-real:sync-git` | source `git` real ingere a working tree atual, registra job/refresh e produz recall consultável |
+| spool cutover | yes | `validated` | `pnpm host-real:sync-spool-cutover` | o hook pack escreve `pending/`, o `sync-daemon` drena para `processed/`, promove o artefato e registra `post-ingest` |
 | Active Memory seam discovery | yes | `partially_validated` | `pnpm host-real:active-memory` | a chave `plugins.entries.active-memory` é aceita e o plugin bundled existe na versão-alvo; o blocking pre-reply path ainda não foi observado ponta a ponta; ver também [ACTIVE_MEMORY.md](ACTIVE_MEMORY.md) |
 | recommended mode automatic recall | yes | `validated` | `pnpm host-real:recommended-recall` | `claw-context-mempalace` executa `assemble`, usa `manager.search` + `manager.readFile`, gera `MemPalace Recall Context` e a resposta final contém o needle sem skill explícita |
 | full mode automatic recall | conditional | `partially_validated` | `pnpm host-real:full-recall` | o modo `full` sobe e responde corretamente, mas o transcript observável do pass próprio de `active-memory` com `memory_search` + `memory_get` antes da resposta principal não apareceu |
@@ -104,6 +108,16 @@ Documentos operacionais relacionados:
 | smoke test in host real | `validated` | `pnpm host-real:smoke:full` prova bootstrap do conjunto `memory-mempalace` + `claw-context-mempalace` + `active-memory` |
 | observable automatic recall proof | `partially_validated` | `pnpm host-real:full-recall` produz resposta correta, mas sem transcript observável do pass próprio de Active Memory |
 | limitations documented | `validated` | Active Memory continua apenas parcialmente validado nesta versão-alvo |
+
+### 6.4 Operação de Sync
+
+| Item | Status | Notes |
+|---|---|---|
+| command plugin exists | `validated` | `skill-mempalace-sync` carrega em host real e expõe os seis comandos públicos |
+| root CLI exists | `validated` | `openclaw mempalace-sync` responde com help e subcomandos reais |
+| `filesystem` source | `validated` | `pnpm host-real:sync-filesystem` prova `add-source`, `run`, `status`, `sync.db` e recall consultável |
+| `git` source | `validated` | `pnpm host-real:sync-git` prova ingestão da working tree atual |
+| spool cutover | `validated` | `pnpm host-real:sync-spool-cutover` prova enqueue pelo hook pack e drenagem pelo `sync-daemon` |
 
 ---
 
@@ -174,10 +188,12 @@ Documentos operacionais relacionados:
   - instalação linkada do hook pack `packages/mempalace-ingest-hooks`;
   - descoberta real dos hooks via `openclaw hooks list --json`;
   - captura host-real do evento `command:new`;
-  - criação de arquivo no spool local;
-  - processamento embutido para `processed/`;
-  - promoção do conteúdo no shim MCP com estado persistido;
-  - consulta bem-sucedida do conteúdo pelo runtime de memória usando o mesmo backend smoke.
+  - criação de arquivo no spool local.
+
+Observação:
+
+- esta evidência continua útil para discovery e enqueue do hook pack;
+- a partir da Etapa 6, o processamento do spool deixa de ser responsabilidade do hook pack e passa para o `sync-daemon`.
 
 ### 7.8 Package final `claw-context-mempalace`
 
@@ -202,6 +218,19 @@ Documentos operacionais relacionados:
 - `pnpm host-real:full-recall`
   - best-effort real do modo `full`, mantendo `partially_validated` quando o pass próprio de Active Memory não fica observável.
 
+### 7.10 Sync daemon e skill operacional
+
+- `pnpm host-real:skill-mempalace-sync`
+  - prova o plugin de comandos final, os seis comandos públicos e a root CLI `mempalace-sync`.
+- `pnpm host-real:sync-filesystem`
+  - prova source `filesystem`, `sync.db`, `runtime_refresh` e recall consultável.
+- `pnpm host-real:sync-git`
+  - prova source `git` usando a working tree atual.
+- `pnpm host-real:sync-spool-cutover`
+  - prova o cutover do spool: hooks enqueue-only, `sync-daemon` como único executor.
+- `pnpm host-real:sync-stage6`
+  - relatório consolidado da Etapa 6.
+
 ---
 
 ## 8. Limitações Conhecidas Após a Etapa 0A
@@ -212,6 +241,7 @@ Documentos operacionais relacionados:
 - O seam de Active Memory está **disponível e configurável** em `2026.4.14`, mas o pass próprio pré-resposta ainda não foi provado com transcript observável.
 - O `recommended` já é o baseline operacional do projeto para recall automático forte.
 - Em ambiente host-real linkado, `listActiveMemoryPublicArtifacts(...)` pode não refletir o provider registrado do plugin final; o `claw-context-mempalace` usa esse seam primeiro e cai para o mirror público em disco do `memory-mempalace` quando necessário.
+- No harness de `sync-spool-cutover`, o comando `/new` já provou captura host-real do hook pack, mas o agente do gateway pode cair no provider default do host e falhar por auth. O critério de aceite desse harness é o cutover do spool, não a resposta do agente.
 
 ---
 

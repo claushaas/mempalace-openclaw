@@ -1,0 +1,10 @@
+[Unit]
+Description=Run MemPalace OpenClaw Sync Daemon on schedule
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=15min
+Unit=mempalace-sync.service
+
+[Install]
+WantedBy=timers.target

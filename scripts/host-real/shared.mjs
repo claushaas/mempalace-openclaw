@@ -26,6 +26,12 @@ export const CONTEXT_ENGINE_MEMPALACE_DIR = path.join(
 	'packages',
 	'context-engine-mempalace',
 );
+export const SYNC_DAEMON_DIR = path.join(ROOT_DIR, 'packages', 'sync-daemon');
+export const SKILL_MEMPALACE_SYNC_DIR = path.join(
+	ROOT_DIR,
+	'packages',
+	'skill-mempalace-sync',
+);
 export const MEMPALACE_INGEST_HOOKS_DIR = path.join(
 	ROOT_DIR,
 	'packages',
@@ -35,6 +41,7 @@ export const MEMORY_PROBE_ID = 'probe-memory-slot';
 export const CONTEXT_PROBE_ID = 'probe-context-engine-slot';
 export const MEMORY_MEMPALACE_ID = 'memory-mempalace';
 export const CONTEXT_ENGINE_MEMPALACE_ID = 'claw-context-mempalace';
+export const SKILL_MEMPALACE_SYNC_ID = 'skill-mempalace-sync';
 export const MEMPALACE_INGEST_HOOKS_ID = '@mempalace-openclaw/mempalace-ingest-hooks';
 export const MEMPALACE_INGEST_HOOK_EVIDENCE_ID = 'mempalace-ingest-hooks';
 export const MEMPALACE_MCP_SHIM_STATE_PATH = path.join(

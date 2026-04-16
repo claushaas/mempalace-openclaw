@@ -1,0 +1,10 @@
+{
+	"configSchema": {
+		"additionalProperties": false,
+		"type": "object"
+	},
+	"description": "Operational sync commands and CLI for MemPalace-backed OpenClaw ingestion.",
+	"id": "skill-mempalace-sync",
+	"name": "MemPalace Sync Commands",
+	"version": "0.0.0"
+}

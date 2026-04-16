@@ -95,7 +95,7 @@ Fluxo lógico alvo:
 hooks
   -> hook envelope
   -> spool record
-  -> processor embutido
+  -> sync-daemon
   -> MemPalace
   -> memory-mempalace
   -> context-engine-mempalace
@@ -107,9 +107,9 @@ Responsabilidades por contrato:
 - `shared`
   - materializar tipos, enums e schemas.
 - `sync-daemon`
-  - operar sobre `source`, `sync job`, `hook envelope`.
+  - operar sobre `source`, `sync job`, `hook envelope` e `spool record`.
 - `mempalace-ingest-hooks`
-  - operar sobre `hook envelope` e `spool record` para captura e ingestão mínima.
+  - operar sobre `hook envelope` e `spool record` para captura e enqueue-only.
 - `memory-mempalace`
   - operar sobre `query`, `result`, `artifact`, `runtime health`.
 - `context-engine-mempalace`
@@ -142,6 +142,7 @@ Regra:
 - ids canônicos.
 - provenance mínima preservada.
 - envelopes versionados e idempotentes.
+- `sync-daemon` como owner único do processamento de spool, fontes externas e refresh operacional.
 
 ## recomendado
 

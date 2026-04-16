@@ -852,7 +852,7 @@ Entregar o subsistema de ingestão contínua, governança de fontes, persistênc
 ### Dependências
 
 - Etapas 2, 3 e 4 concluídas
-- Etapa 5 recomendada, mas não bloqueante para daemon básico
+- Etapa 5 concluída para prova de recall consultável após sync
 
 ### Entregáveis
 
@@ -866,60 +866,72 @@ Entregar o subsistema de ingestão contínua, governança de fontes, persistênc
 
 ### Implementação
 
-1. Criar `packages/sync-daemon` com submódulos:
-   - registry de fontes
-   - scheduler
-   - executor de jobs
-   - checkpoint manager
-   - deduplicação
-   - normalização
-   - runtime refresh
-   - persistência SQLite
-2. Implementar `sync.db` com tabelas:
-   - `sources`
-   - `jobs`
-   - `files`
-   - `errors`
-   - `runtime_refresh`
-3. Definir colunas mínimas:
-   - `sources`: `id`, `type`, `path`, `config`, `enabled`
-   - `jobs`: `id`, `source_id`, `status`, `started_at`, `finished_at`
-   - `files`: `path`, `hash`, `last_ingested_at`
-   - `errors`: `job_id`, `error_message`
-   - `runtime_refresh`: `id`, `reason`, `triggered_at`, `completed_at`, `status`
-4. Adicionar índices mínimos:
-   - `sources(id)` único
-   - `jobs(source_id, started_at)`
-   - `files(path)` único
-   - `runtime_refresh(triggered_at)`
-5. Pipeline fixo:
-   - detectar mudanças
-   - hash check
-   - chunk
+1. Implementar `packages/sync-daemon` como owner único do pipeline operacional:
+   - config/state dir
+   - spool
+   - scanner de fontes
+   - chunking
    - classificação leve
-   - dedup
-   - write no MemPalace
-   - refresh de runtime
-6. Ordem de suporte a fontes:
-   - filesystem markdown/txt
-   - git repo local
-   - documentos simples
-   - chat exports depois da estabilidade do pipeline básico
-7. Criar `packages/skill-mempalace-sync` com os seis comandos públicos definidos.
-8. Criar `examples/obsidian-source.json` e `examples/repo-source.json` validados por schema.
-9. Criar `infra/systemd` e `infra/cron` apenas como gatilhos do daemon.
+   - persistência SQLite
+   - runtime refresh
+   - CLI interna
+2. Fixar estado default no host state dir:
+   - `OPENCLAW_STATE_DIR/plugins/mempalace-openclaw/sync/sync.db`
+   - `OPENCLAW_STATE_DIR/plugins/mempalace-openclaw/sync/spool/`
+   - `OPENCLAW_STATE_DIR/plugins/mempalace-openclaw/sync/logs/`
+   - overrides: `MEMPALACE_OPENCLAW_SYNC_STATE_DIR`, `MEMPALACE_OPENCLAW_SYNC_DB_PATH`, `MEMPALACE_OPENCLAW_SPOOL_DIR`
+3. Implementar `sync.db` com o schema canônico:
+   - `sources(id, type, path, config, enabled)`
+   - `jobs(id, source_id, status, started_at, finished_at)`
+   - `files(path, hash, last_ingested_at)`
+   - `errors(job_id, error_message)`
+   - `runtime_refresh(id, reason, triggered_at, completed_at, status)`
+   - índices: `sources(id)`, `jobs(source_id, status, started_at)`, `files(path)`, `files(hash)`, `runtime_refresh(triggered_at, status)`
+4. Implementar pipeline fixo:
+   - detectar candidatos
+   - aplicar include/exclude
+   - carregar conteúdo elegível
+   - calcular `hash`
+   - comparar com `files.path` + `files.hash`
+   - chunking determinístico
+   - classificação leve
+   - promote no MemPalace MCP
+   - registrar em `files`
+   - disparar `runtime_refresh`
+5. Entregar suporte v1 para:
+   - `filesystem`
+   - `git` sobre a working tree atual
+   - `documents`
+   - drenagem de `spool`
+6. Fazer cutover do hook pack:
+   - remover processor operacional do hook pack
+   - manter hooks como enqueue-only
+   - migrar spool legado quando necessário
+7. Implementar `packages/skill-mempalace-sync` com:
+   - seis comandos públicos do spec
+   - root CLI `mempalace-sync`
+8. Criar `infra/systemd` e `infra/cron` apenas como gatilhos declarativos do daemon.
+9. Validar em host real:
+   - `pnpm host-real:skill-mempalace-sync`
+   - `pnpm host-real:sync-filesystem`
+   - `pnpm host-real:sync-git`
+   - `pnpm host-real:sync-spool-cutover`
+   - `pnpm host-real:sync-stage6`
 
 ### Critérios de Aceite
 
-- O daemon processa mudanças com idempotência mínima.
-- Os comandos operacionais são suficientes para cadastrar, listar, rodar, consultar e reindexar fontes.
-- O banco local guarda histórico mínimo de fontes, jobs, arquivos e refresh.
+- O `sync-daemon` é o único executor operacional de spool, fontes externas e refresh.
+- `sync.db` registra `sources`, `jobs`, `files`, `errors` e `runtime_refresh`.
+- Os seis comandos públicos funcionam em host real.
+- `filesystem`, `git` e `documents` são suportados em v1.
+- Conteúdo ingerido pelo daemon fica consultável via `memory-mempalace`.
+- `infra/systemd` e `infra/cron` existem como gatilhos declarativos.
 
 ### Riscos Principais
 
-- Modelar o banco sem índices suficientes para idempotência.
-- Misturar trigger e execução.
-- Expandir para fontes complexas cedo demais.
+- Regressão entre spool legado e spool canônico do host state dir.
+- Divergência entre schema documentado e `sync.db` real.
+- Aumentar demais o escopo antes de estabilizar `filesystem`, `git` e `documents`.
 
 ### Referências Obrigatórias
 
@@ -1220,7 +1232,7 @@ Fechar o ciclo de execução com scripts operacionais, validação automatizada 
 | 3 | `packages/memory-mempalace` | concluída | runtime replacement funcional |
 | 4 | Hooks + spool + ingest básico | concluída | hook pack real, spool local e ingestão ponta a ponta |
 | 5 | Context engine + Active Memory | concluída | injeção disciplinada de contexto, smoke tests por modo e prova canônica de recall |
-| 6 | Sync daemon + skill + infra | não iniciada | ingestão contínua operacional |
+| 6 | Sync daemon + skill + infra | concluída | `sync-daemon`, `sync.db`, comandos públicos, cutover do spool e validação host-real |
 | 7 | Robustez, ranking e failure modes | não iniciada | qualidade e resiliência |
 | 8 | Recursos avançados V2 | não iniciada | KG, pinned memory, diaries |
 | 9 | Scripts, CI e readiness | não iniciada | operação e manutenção previsíveis |
@@ -1237,8 +1249,8 @@ Fechar o ciclo de execução com scripts operacionais, validação automatizada 
 | docs operacionais | bootstrap | implementação segura dos packages |
 | `packages/shared` | docs operacionais, compat matrix | todos os packages executáveis |
 | `packages/memory-mempalace` | `shared`, compat matrix | context engine, hooks, exemplos |
-| hooks/spool | `shared`, runtime core | fluxo de ingest v1 |
-| `packages/mempalace-ingest-hooks` | `shared`, runtime core | hook pack real e processador embutido |
+| hooks/spool | `shared`, runtime core | enqueue observável e cutover para o daemon |
+| `packages/mempalace-ingest-hooks` | `shared`, runtime core | hook pack real enqueue-only |
 | `packages/context-engine-mempalace` | runtime core, compat matrix | injeção pré-resposta de alta qualidade |
 | Active Memory enablement | runtime core, docs, eventualmente context engine | runtime conversacional completo |
 | `packages/sync-daemon` | `shared`, hooks/spool | skill, infra, sync contínuo |

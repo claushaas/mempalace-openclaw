@@ -10,16 +10,27 @@ export function resolveSpoolBaseDir() {
 		return process.env.MEMPALACE_OPENCLAW_SPOOL_DIR;
 	}
 
-	if (process.env.OPENCLAW_CONFIG_PATH) {
-		return path.resolve(
-			path.dirname(process.env.OPENCLAW_CONFIG_PATH),
-			'..',
+	if (process.env.MEMPALACE_OPENCLAW_SYNC_STATE_DIR) {
+		return path.join(process.env.MEMPALACE_OPENCLAW_SYNC_STATE_DIR, 'spool');
+	}
+
+	if (process.env.OPENCLAW_STATE_DIR) {
+		return path.join(
+			process.env.OPENCLAW_STATE_DIR,
+			'plugins',
 			'mempalace-openclaw',
+			'sync',
 			'spool',
 		);
 	}
 
-	return path.join(REPO_ROOT_DIR, '.tmp', 'mempalace-openclaw', 'spool');
+	return path.join(
+		REPO_ROOT_DIR,
+		'.tmp',
+		'mempalace-openclaw',
+		'sync',
+		'spool',
+	);
 }
 
 export function resolveSpoolPaths() {

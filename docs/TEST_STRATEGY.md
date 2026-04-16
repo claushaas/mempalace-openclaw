@@ -55,7 +55,7 @@ O contrato alvo dessas superfícies está congelado em [MEMORY_RUNTIME.md](MEMOR
 
 Cobrem:
 
-- hooks -> spool -> processor -> MemPalace -> runtime;
+- hooks -> spool -> sync-daemon -> MemPalace -> runtime;
 - runtime -> context engine;
 - config examples -> validação -> boot mínimo;
 - refresh e status do runtime.
@@ -204,8 +204,8 @@ Prova:
 - o hook pack real instala em host OpenClaw;
 - `openclaw hooks list --json` e `openclaw hooks check --json` descobrem os hooks da Etapa 4;
 - um evento host-real suportado escreve envelope no spool;
-- o processador embutido consome o spool, promove conteúdo no MemPalace MCP e dispara refresh;
-- o conteúdo ingerido fica consultável pelo runtime `memory-mempalace` usando o mesmo estado persistido do backend smoke.
+- o hook pack opera como enqueue-only no spool canônico do host state dir;
+- o conteúdo só é promovido quando o `sync-daemon` drena o spool.
 
 Artefatos:
 
@@ -214,7 +214,7 @@ Artefatos:
 
 Limite:
 
-- este harness prova captura, spool, ingestão e refresh observáveis;
+- este harness prova captura e enqueue observáveis;
 - ele não prova recall automático pré-resposta.
 
 ### 3.9 `pnpm host-real:context-engine-mempalace`
@@ -283,6 +283,51 @@ Motivo:
 
 - a resposta correta aparece, mas a evidência ainda vem do `claw-context-mempalace`;
 - o transcript esperado de `active-memory` com `memory_search` + `memory_get` antes da resposta principal ainda não ficou observável.
+
+### 3.15 `pnpm host-real:skill-mempalace-sync`
+
+Prova:
+
+- o plugin final `skill-mempalace-sync` carrega em host real;
+- `plugins inspect` descobre os seis comandos públicos;
+- a root CLI `openclaw mempalace-sync` está disponível;
+- `list-sources --json` responde sem depender de provider externo.
+
+### 3.16 `pnpm host-real:sync-filesystem`
+
+Prova:
+
+- `mempalace_sync_add_source` aceita arquivo JSON real com `kind = "filesystem"`;
+- `mempalace_sync_run` cria job, atualiza `files` e `runtime_refresh` em `sync.db`;
+- o conteúdo ingerido fica consultável via `memory-mempalace` e recallável via `claw-context-mempalace`.
+
+### 3.17 `pnpm host-real:sync-git`
+
+Prova:
+
+- `mempalace_sync_add_source` aceita arquivo JSON real com `kind = "git"`;
+- o daemon ingere a working tree atual, sem depender de histórico de commits;
+- o conteúdo ingerido fica consultável e recallável em host real.
+
+### 3.18 `pnpm host-real:sync-spool-cutover`
+
+Prova:
+
+- o hook pack escreve item em `pending/`;
+- `mempalace_sync_run` drena o spool com o `sync-daemon`;
+- o item vai para `processed/`, o artefato entra no backend smoke e um `runtime_refresh` é registrado.
+
+Observação:
+
+- o disparo de `/new` neste harness já provou enqueue host-real, mas a execução do agente do gateway pode cair no provider default do host e falhar por auth;
+- isso não invalida o harness porque o critério de aceite aqui é o cutover `pending -> processed` com ingestão e refresh observáveis.
+
+### 3.19 `pnpm host-real:sync-stage6`
+
+Função:
+
+- orquestra `host-real:skill-mempalace-sync`, `host-real:sync-filesystem`, `host-real:sync-git` e `host-real:sync-spool-cutover`;
+- produz um relatório consolidado da Etapa 6.
 
 ---
 

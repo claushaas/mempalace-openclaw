@@ -11,6 +11,11 @@ Seu papel é detalhar o contrato de persistência derivado de [SPEC.md](SPEC.md)
 - engine: SQLite local.
 - arquivo canônico: `sync.db`.
 - ownership: sync daemon.
+- caminho default em produção:
+  - `OPENCLAW_STATE_DIR/plugins/mempalace-openclaw/sync/sync.db`
+- overrides:
+  - `MEMPALACE_OPENCLAW_SYNC_STATE_DIR`
+  - `MEMPALACE_OPENCLAW_SYNC_DB_PATH`
 - escopo:
   - registrar fontes configuradas;
   - registrar jobs de sincronização;
@@ -41,6 +46,7 @@ Notas:
 
 - `config` é persistido como JSON serializado para manter rastreabilidade e evitar schema churn precoce.
 - `id` deve ser estável entre reinicializações e reprocessamentos.
+- `type` persiste o valor público de `SourceConfig.kind`.
 
 ## Tabela jobs
 
@@ -62,6 +68,7 @@ Notas:
 
 - `source_id` referencia `sources.id`.
 - `status` deve permitir pelo menos `pending`, `running`, `completed`, `failed`.
+- jobs do spool usam `source_id = "spool"` mesmo sem linha em `sources`.
 
 ## Tabela files
 
@@ -99,6 +106,7 @@ Notas:
 
 - esta tabela é append-only em v1.
 - exclusão ou sobrescrita de erros enfraquece auditabilidade e não deve ocorrer.
+- o schema implementado não usa chave primária própria em `errors`; a ordenação auditável pode usar `rowid`.
 
 ## Tabela runtime_refresh
 
@@ -145,6 +153,7 @@ Constraints obrigatórias:
 - o schema é deliberadamente pequeno porque o valor principal do sistema está no storage durável e no retrieval composer, não em um ORM complexo.
 - `errors` append-only e `runtime_refresh` explícito reduzem ambiguidade durante incidentes.
 - `files.hash` e `files.path` permitem idempotência suficiente em v1 sem introduzir dedup opaca.
+- o spool legado da Etapa 4 pode ser migrado para o state dir canônico na primeira execução do daemon, sem apagar automaticamente o diretório antigo.
 
 ## v1 obrigatório
 

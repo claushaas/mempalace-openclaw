@@ -11,7 +11,7 @@ Ele traduz as restrições de [SPEC.md](SPEC.md) e [REASONING.md](REASONING.md) 
 - capturar eventos relevantes do ciclo de vida do host;
 - normalizar payloads em envelopes versionados;
 - persistir envelopes em spool local append-only;
-- enfileirar ingestão para o processador embutido da Etapa 4;
+- enfileirar ingestão para o `sync-daemon`;
 - disparar refresh leve de runtime quando apropriado.
 
 Os hooks não devem:
@@ -22,7 +22,7 @@ Os hooks não devem:
 
 ## Eventos Suportados
 
-Eventos host-reais suportados na Etapa 4:
+Eventos host-reais suportados em produção:
 
 - `command:new`
 - `command:reset`
@@ -48,15 +48,15 @@ Semântica mínima:
 - `session:compact:before`
   - captura contexto imediatamente antes de qualquer compactação interna do host.
 - `gateway:startup`
-  - dispara o dreno de itens pendentes do spool local.
+  - registra evidência de startup do hook pack; o dreno real do spool pertence ao `sync-daemon`.
 - `end-of-session`
   - fecha a captura da sessão em nível de pipeline local quando não houver evento host-real mais específico.
 - `milestone`
   - registra um ponto semanticamente relevante, como decisão ou entrega, pelo pipeline interno.
 - `scheduled-sync`
-  - dispara o processamento pendente do spool e de fontes externas.
+  - representa uma execução interna do `sync-daemon` sobre spool e fontes externas.
 - `post-ingest-refresh`
-  - registra que a ingestão terminou e que um refresh de runtime foi solicitado.
+  - registra que o `sync-daemon` concluiu ingestão e solicitou refresh.
 
 ## Payloads e Envelopes
 
@@ -95,12 +95,16 @@ Campos obrigatórios:
 
 - formato canônico: spool local append-only.
 - cada envelope deve ser persistido em formato versionado, com fronteira clara entre envelopes.
-- na Etapa 4, o spool fica congelado em `.tmp/mempalace-openclaw/spool/`.
+- a partir da Etapa 6, o spool canônico fica no host state dir:
+  - `OPENCLAW_STATE_DIR/plugins/mempalace-openclaw/sync/spool/`
+- overrides suportados:
+  - `MEMPALACE_OPENCLAW_SYNC_STATE_DIR`
+  - `MEMPALACE_OPENCLAW_SPOOL_DIR`
 - subdiretórios mínimos:
   - `pending/`
   - `processed/`
   - `failed/`
-- o spool é um buffer operacional entre hooks e o processador embutido; o `sync-daemon` passa a substituir essa função em etapas posteriores.
+- o spool é um buffer operacional entre hooks e `sync-daemon`.
 
 Regras:
 
@@ -124,7 +128,7 @@ host event
   -> hook
   -> envelope normalizado
   -> spool local append-only
-  -> processador embutido
+  -> sync-daemon
   -> MemPalace
   -> runtime refresh
 ```
@@ -135,7 +139,7 @@ Ordem mínima esperada:
 2. normalizar em envelope estável.
 3. persistir no spool.
 4. retornar controle ao host sem retrieval pesado.
-5. deixar o processamento posterior para o processador embutido.
+5. deixar o processamento posterior para o `sync-daemon`.
 
 ## Limites e Restrições
 
@@ -144,6 +148,7 @@ Ordem mínima esperada:
 - hooks não fazem classificação cara inline.
 - hooks não são mecanismo principal de recall pré-resposta.
 - o hook pack é um artefato operacional separado do runtime `memory-mempalace`.
+- o hook pack `mempalace-ingest-hooks` é enqueue-only em produção.
 - qualquer tentativa de usar hook como pre-reply recall compromete o desenho do runtime replacement e conflita com o spec.
 
 ## v1 obrigatório
@@ -160,6 +165,7 @@ Ordem mínima esperada:
 - métricas de volume e atraso do spool.
 - classificação leve assíncrona após persistência.
 - retries com backoff no processador, não nos hooks.
+- migração explícita de spool legado para o spool canônico do host state dir.
 
 ## v2
 
@@ -171,7 +177,7 @@ Ordem mínima esperada:
 
 - recall pré-resposta via hook.
 - processamento pesado inline no loop de conversa.
-- substituir o sync daemon em definitivo.
+- substituir o `sync-daemon` em definitivo.
 - substituir MemPalace como storage.
 
 ## Referências

@@ -1,5 +1,4 @@
 import { appendHookPackEvidence } from '../lib/evidence.js';
-import { spawnProcessor } from '../lib/runtime.js';
 import {
 	createHookEnvelopeFromHostEvent,
 	createSpoolRecord,
@@ -30,5 +29,4 @@ export default async function mempalaceSessionSpoolHook(event) {
 		idempotencyKey: envelope.idempotencyKey,
 		sessionId: envelope.sessionId,
 	});
-	spawnProcessor(event?.context?.cfg ?? {});
 }

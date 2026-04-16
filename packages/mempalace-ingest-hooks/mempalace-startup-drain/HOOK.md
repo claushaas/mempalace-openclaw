@@ -13,4 +13,4 @@ metadata:
 
 # mempalace-startup-drain
 
-No startup do gateway, dispara o processor embutido para drenar itens pendentes do spool local. Isso cobre retries e eventos internos de pós-ingestão sem transformar hooks em recall pré-resposta.
+No startup do gateway, registra evidência explícita de que o hook pack está carregado, mas não executa ingestão. A partir da Etapa 6, o spool é drenado exclusivamente pelo `sync-daemon`.

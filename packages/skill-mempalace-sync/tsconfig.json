@@ -1,0 +1,14 @@
+{
+	"compilerOptions": {
+		"baseUrl": ".",
+		"outDir": "dist",
+		"paths": {
+			"@mempalace-openclaw/sync-daemon": ["../sync-daemon/src/index.ts"]
+		},
+		"rootDir": "..",
+		"tsBuildInfoFile": "node_modules/.cache/tsconfig.tsbuildinfo",
+		"types": ["node"]
+	},
+	"extends": "../../tsconfig.base.json",
+	"include": ["src/**/*.ts", "../sync-daemon/src/**/*.ts"]
+}

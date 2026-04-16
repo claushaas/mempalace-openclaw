@@ -39,9 +39,9 @@ OpenClaw host
     -> recall automático forte quando suportado
   -> hooks
     -> spool local append-only
-    -> processador embutido na Etapa 4
+    -> enqueue-only a partir da Etapa 6
   -> sync-daemon
-    -> substitui o processor embutido nas etapas posteriores
+    -> owner operacional do spool e de `sync.db`
     -> processa spool e fontes externas
     -> atualiza MemPalace e dispara refresh
 ```
@@ -62,9 +62,9 @@ Separação de responsabilidades:
 | `memory-mempalace` | plugin real de memory slot e adapter entre OpenClaw e MemPalace | implementado |
 | `context-engine-mempalace` | plugin real de context engine para budget, pruning e injeção com provenance | implementado |
 | `shared` | tipos, schemas e contratos comuns do runtime, hooks e sync | implementado |
-| `mempalace-ingest-hooks` | hook pack real para captura, spool local e ingestão básica não bloqueante | implementado |
-| `sync-daemon` | ingestão operacional, `sync.db`, spool e sincronização de fontes externas | ainda não implementado |
-| `skill-mempalace-sync` | surface operacional para adicionar, listar, rodar e reindexar sources | ainda não implementado |
+| `mempalace-ingest-hooks` | hook pack real para captura e enqueue em spool local | implementado |
+| `sync-daemon` | ingestão operacional, `sync.db`, spool e sincronização de fontes externas | implementado |
+| `skill-mempalace-sync` | surface operacional para adicionar, listar, rodar e reindexar sources | implementado |
 
 ## Documentos Canônicos
 
@@ -100,7 +100,7 @@ Scripts da raiz:
 - `pnpm dev`
 - `pnpm validate-config`
 
-O bootstrap do monorepo já está concluído. Nesta altura do roadmap, `shared`, `memory-mempalace`, `context-engine-mempalace` e `mempalace-ingest-hooks` já existem; `sync-daemon` e `skill-mempalace-sync` continuam pendentes.
+O bootstrap do monorepo já está concluído. Nesta altura do roadmap, `shared`, `memory-mempalace`, `context-engine-mempalace`, `mempalace-ingest-hooks`, `sync-daemon` e `skill-mempalace-sync` já existem.
 
 ## Validação Host-Real
 
@@ -121,6 +121,11 @@ Scripts disponíveis:
 - `pnpm host-real:smoke:full`
 - `pnpm host-real:recommended-recall`
 - `pnpm host-real:full-recall`
+- `pnpm host-real:skill-mempalace-sync`
+- `pnpm host-real:sync-filesystem`
+- `pnpm host-real:sync-git`
+- `pnpm host-real:sync-spool-cutover`
+- `pnpm host-real:sync-stage6`
 - `pnpm host-real:all`
 
 Artefatos relevantes:
@@ -140,7 +145,7 @@ O estado detalhado da compatibilidade está em [docs/COMPATIBILITY_MATRIX.md](do
 
 ## Estado Atual
 
-O repositório já tem bootstrap do monorepo, runtime de memória funcional, hook pack de ingestão básica e context engine funcional com prova observável de recall no modo `recommended`.
+O repositório já tem bootstrap do monorepo, runtime de memória funcional, hook pack enqueue-only, `sync-daemon` operacional, skill operacional e context engine funcional com prova observável de recall no modo `recommended`.
 
 O que já está fechado:
 
@@ -148,9 +153,12 @@ O que já está fechado:
 - manifest real aceito pelo host
 - slot de memória validado com probe
 - plugin final `memory-mempalace` implementado e validado em host real com MCP shim local
-- hook pack `mempalace-ingest-hooks` implementado e validado em host real com spool local e processador embutido
+- hook pack `mempalace-ingest-hooks` implementado e validado em host real como enqueue-only no spool canônico do host state dir
 - slot de context engine validado com probe
 - plugin final `claw-context-mempalace` implementado e validado em host real
+- `sync-daemon` implementado com `sync.db`, execução de spool, fontes `filesystem`, `git` e `documents`, e refresh operacional
+- plugin `skill-mempalace-sync` implementado com os seis comandos públicos e root CLI `mempalace-sync`
+- Etapa 6 validada em host real com `host-real:skill-mempalace-sync`, `host-real:sync-filesystem`, `host-real:sync-git`, `host-real:sync-spool-cutover` e `host-real:sync-stage6`
 - modo `memory-only` com config real, smoke test e limitação documentada
 - modo `recommended` com config real, smoke test e prova observável de recall automático sem skill explícita
 - modo `full` com config real, smoke test e classificação precisa como `partially_validated`
@@ -160,10 +168,9 @@ O que já está fechado:
 
 O que ainda não existe:
 
-- `packages/sync-daemon`
-- `packages/skill-mempalace-sync`
 - validação positiva do pass próprio de Active Memory antes da resposta principal em `openclaw@2026.4.14`
-- sincronização contínua de fontes externas via `sync-daemon`
+- fontes `chat-export` no pipeline operacional do `sync-daemon`
+- CI/readiness final das etapas posteriores do roadmap
 
 Limites relevantes já observados:
 

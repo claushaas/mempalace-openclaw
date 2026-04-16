@@ -31,7 +31,7 @@ Ele deriva seu escopo de [SPEC.md](SPEC.md) e suas restrições conceituais de [
   - ownership: orchestration de pre-reply recall, não storage durável.
 - hooks
   - capturam eventos da sessão e produzem envelopes normalizados.
-  - ownership: ingest trigger leve.
+  - ownership: captura e enqueue-only em spool.
 - sync daemon
   - sincroniza fontes externas, mantém `sync.db`, processa spool e dispara refresh do runtime.
   - ownership: ingestão operacional e sincronização.
@@ -89,7 +89,7 @@ evento/hook
 - `recommended`
   - composição: OpenClaw host + `memory-mempalace` + `claw-context-mempalace`.
   - objetivo: recall pré-resposta observável via context injection disciplinada.
-  - estado atual: contrato alvo definido; prova observável ainda depende dos packages reais.
+  - estado atual: validado com prova observável de recall pré-resposta.
 - `full`
   - composição: OpenClaw host + `memory-mempalace` + `claw-context-mempalace` + Active Memory.
   - objetivo: recall automático forte com blocking pre-reply path quando suportado pelo host-alvo.

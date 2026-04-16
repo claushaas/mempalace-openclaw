@@ -1,0 +1,12 @@
+[Unit]
+Description=MemPalace OpenClaw Sync Daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Environment=MEMPALACE_OPENCLAW_REPO=/absolute/path/to/mempalace-openclaw
+ExecStart=/usr/bin/env bash -lc 'cd "$MEMPALACE_OPENCLAW_REPO" && node packages/sync-daemon/dist/bin.js run-scheduled'
+
+[Install]
+WantedBy=multi-user.target
