@@ -47,6 +47,7 @@ type CreateSyncDaemonOptions = {
 
 type RunSyncResult = {
 	artifactsPromoted: number;
+	duplicatesAvoided: number;
 	filesSkipped: number;
 	filesVisited: number;
 	jobs: string[];
@@ -271,24 +272,28 @@ export class SyncDaemon {
 	}
 
 	public async processSpool(): Promise<{
+		duplicatesAvoided: number;
 		processed: number;
 		refreshIds: string[];
 	}> {
 		const pendingFiles = listPendingSpoolFiles(this.statePaths);
 		if (pendingFiles.length === 0) {
-			return { processed: 0, refreshIds: [] };
+			return { duplicatesAvoided: 0, processed: 0, refreshIds: [] };
 		}
 
 		const client = this.clientFactory(this.hostConfig);
 		const refreshIds: string[] = [];
+		let duplicatesAvoided = 0;
 		let processed = 0;
 		try {
 			const job = this.db.startJob('spool');
+			const promotedArtifactIds: string[] = [];
 			for (const filePath of pendingFiles) {
 				const record = readSpoolRecord(filePath);
 				const logicalPath = `spool:${record.sourceFingerprint}`;
 				const known = this.db.getFileRecord(logicalPath);
 				if (known?.hash === record.sourceFingerprint) {
+					duplicatesAvoided += 1;
 					markSpoolRecordProcessed(this.statePaths, filePath, record, {
 						deduped: true,
 					});
@@ -300,22 +305,14 @@ export class SyncDaemon {
 						resolveSpoolPromoteInput(record),
 					);
 					this.db.recordFile(logicalPath, record.sourceFingerprint);
-					const refresh = await triggerRuntimeRefresh({
-						client,
-						db: this.db,
-						reason: 'post-ingest',
-						sourceId: 'spool',
-					});
-					refreshIds.push(refresh.refreshId);
+					promotedArtifactIds.push(artifact.artifactId);
 					markSpoolRecordProcessed(this.statePaths, filePath, record, {
 						artifactId: artifact.artifactId,
-						refreshId: refresh.refreshId,
 					});
 					processed += 1;
 					appendDaemonEvidence(this.statePaths, 'spool.record.processed', {
 						artifactId: artifact.artifactId,
 						filePath,
-						refreshId: refresh.refreshId,
 					});
 				} catch (error) {
 					this.db.addError(
@@ -329,8 +326,21 @@ export class SyncDaemon {
 					});
 				}
 			}
+			if (processed > 0) {
+				const refresh = await triggerRuntimeRefresh({
+					client,
+					db: this.db,
+					reason: 'post-ingest',
+					sourceId: 'spool',
+				});
+				refreshIds.push(refresh.refreshId);
+				appendDaemonEvidence(this.statePaths, 'spool.refresh.completed', {
+					artifactIds: promotedArtifactIds,
+					refreshId: refresh.refreshId,
+				});
+			}
 			this.db.finishJob(job.jobId, 'completed');
-			return { processed, refreshIds };
+			return { duplicatesAvoided, processed, refreshIds };
 		} catch (error) {
 			this.logger.error('sync-daemon spool processing failed', {
 				error: error instanceof Error ? error.message : String(error),
@@ -361,6 +371,7 @@ export class SyncDaemon {
 		if (dueSources.length === 0) {
 			return {
 				artifactsPromoted: 0,
+				duplicatesAvoided: 0,
 				filesSkipped: 0,
 				filesVisited: 0,
 				jobs: [],
@@ -370,6 +381,7 @@ export class SyncDaemon {
 
 		let summary: RunSyncResult = {
 			artifactsPromoted: 0,
+			duplicatesAvoided: 0,
 			filesSkipped: 0,
 			filesVisited: 0,
 			jobs: [],
@@ -382,6 +394,7 @@ export class SyncDaemon {
 			});
 			summary = {
 				artifactsPromoted: summary.artifactsPromoted + result.artifactsPromoted,
+				duplicatesAvoided: summary.duplicatesAvoided + result.duplicatesAvoided,
 				filesSkipped: summary.filesSkipped + result.filesSkipped,
 				filesVisited: summary.filesVisited + result.filesVisited,
 				jobs: [...summary.jobs, ...result.jobs],
@@ -411,6 +424,7 @@ export class SyncDaemon {
 		const client = this.clientFactory(this.hostConfig);
 		const refreshIds = [...spoolResult.refreshIds];
 		let artifactsPromoted = spoolResult.processed;
+		let duplicatesAvoided = spoolResult.duplicatesAvoided;
 		let filesSkipped = 0;
 		let filesVisited = 0;
 		const jobs: string[] = [];
@@ -421,6 +435,8 @@ export class SyncDaemon {
 				jobs.push(job.jobId);
 				try {
 					const candidates = await scanSource(source);
+					let sourceArtifactsPromoted = 0;
+					const seenRunChunkFingerprints = new Set<string>();
 					for (const candidate of candidates) {
 						filesVisited += 1;
 						const content = readSourceCandidateContent(candidate.absolutePath);
@@ -440,28 +456,44 @@ export class SyncDaemon {
 							relativePath: candidate.relativePath,
 							source,
 						});
+						const uniqueChunks: ReturnType<typeof prepareSourceChunks> = [];
+						for (const chunk of chunks) {
+							if (seenRunChunkFingerprints.has(chunk.fingerprint)) {
+								duplicatesAvoided += 1;
+								continue;
+							}
+							seenRunChunkFingerprints.add(chunk.fingerprint);
+							uniqueChunks.push(chunk);
+						}
+						if (uniqueChunks.length === 0) {
+							continue;
+						}
 						const artifacts = await promoteChunks({
-							chunks,
+							chunks: uniqueChunks,
 							client,
 							source,
 						});
 						artifactsPromoted += artifacts.length;
+						sourceArtifactsPromoted += artifacts.length;
 						this.db.recordFile(candidate.logicalPath, sourceHash);
 						appendDaemonEvidence(this.statePaths, 'source.file.promoted', {
 							artifactIds: artifacts.map((artifact) => artifact.artifactId),
+							duplicatesAvoided,
 							logicalPath: candidate.logicalPath,
 							sourceId: source.id,
 						});
 					}
 
-					const refresh = await triggerRuntimeRefresh({
-						client,
-						db: this.db,
-						...(params?.force !== undefined ? { force: params.force } : {}),
-						reason,
-						sourceId: source.id,
-					});
-					refreshIds.push(refresh.refreshId);
+					if (sourceArtifactsPromoted > 0) {
+						const refresh = await triggerRuntimeRefresh({
+							client,
+							db: this.db,
+							...(params?.force !== undefined ? { force: params.force } : {}),
+							reason,
+							sourceId: source.id,
+						});
+						refreshIds.push(refresh.refreshId);
+					}
 					this.db.finishJob(job.jobId, 'completed');
 				} catch (error) {
 					this.db.addError(
@@ -475,6 +507,7 @@ export class SyncDaemon {
 
 			return {
 				artifactsPromoted,
+				duplicatesAvoided,
 				filesSkipped,
 				filesVisited,
 				jobs,

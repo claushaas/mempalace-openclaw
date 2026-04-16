@@ -101,6 +101,42 @@ function removeRedundantEntries(
 	return output;
 }
 
+function limitEntriesPerSource(
+	entries: ContextInjectionEntry[],
+	maxPerSource: number,
+): ContextInjectionEntry[] {
+	const counts = new Map<string, number>();
+	const output: ContextInjectionEntry[] = [];
+
+	for (const entry of entries) {
+		const current = counts.get(entry.source) ?? 0;
+		if (current >= maxPerSource) {
+			continue;
+		}
+		counts.set(entry.source, current + 1);
+		output.push(entry);
+	}
+
+	return output;
+}
+
+function prioritizeNonConversationEntries(
+	entries: ContextInjectionEntry[],
+): ContextInjectionEntry[] {
+	const nonConversation = entries.filter(
+		(entry) => entry.classification !== 'conversation',
+	);
+	const conversations = entries.filter(
+		(entry) => entry.classification === 'conversation',
+	);
+
+	if (nonConversation.length === 0) {
+		return entries;
+	}
+
+	return [...nonConversation, ...conversations];
+}
+
 function buildContextBlock(
 	entries: ContextInjectionEntry[],
 ): string | undefined {
@@ -421,9 +457,12 @@ export function createContextEngine(
 				enrichedEntries.push(entry);
 			}
 
-			const orderedEntries = removeRedundantEntries(enrichedEntries)
-				.sort(compareEntries)
-				.slice(0, config.maxEntries);
+			const orderedEntries = limitEntriesPerSource(
+				prioritizeNonConversationEntries(
+					removeRedundantEntries(enrichedEntries).sort(compareEntries),
+				),
+				2,
+			).slice(0, config.maxEntries);
 			const effectiveBudget =
 				params.tokenBudget === undefined
 					? config.maxContextTokens

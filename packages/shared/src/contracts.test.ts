@@ -9,6 +9,7 @@ import {
 	MemoryPromoteInputSchema,
 	MemorySearchQuerySchema,
 	MemorySearchResultSchema,
+	MemoryStatusSchema,
 	RuntimeHealthSchema,
 	SourceConfigSchema,
 } from './index.js';
@@ -142,5 +143,39 @@ describe('contract schemas', () => {
 				status: 'unavailable',
 			}),
 		).toMatchObject({ status: 'unavailable' });
+	});
+
+	it('extends memory status with observable cache and diagnostics state', () => {
+		expect(
+			MemoryStatusSchema.parse({
+				activeMemoryCompatible: true,
+				cache: {
+					artifactEntries: 2,
+					lastRefreshReason: 'cache-refresh',
+					metadataEntries: 1,
+					stale: false,
+				},
+				contextEngineCompatible: true,
+				diagnostics: {
+					duplicateResultsCollapsed: 3,
+					keywordFallbackApplied: false,
+					rankingProfile: 'v2',
+				},
+				ingestionLagSeconds: 12,
+				memoryCount: 4,
+				runtime: {
+					backendReachable: true,
+					status: 'ready',
+				},
+				sources: [],
+			}),
+		).toMatchObject({
+			cache: {
+				artifactEntries: 2,
+			},
+			diagnostics: {
+				rankingProfile: 'v2',
+			},
+		});
 	});
 });

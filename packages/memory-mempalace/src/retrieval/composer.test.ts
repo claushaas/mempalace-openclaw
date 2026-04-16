@@ -1,10 +1,8 @@
 import type { MemorySearchResult } from '@mempalace-openclaw/shared';
 import { describe, expect, it } from 'vitest';
 
-import {
-	applyKeywordFallback,
-	composeMemorySearchResults,
-} from './composer.js';
+import { composeMemorySearchResults } from './composer.js';
+import { computeRankedScore } from './ranking.js';
 
 const baseResults: MemorySearchResult[] = [
 	{
@@ -41,7 +39,7 @@ const baseResults: MemorySearchResult[] = [
 
 describe('retrieval composer', () => {
 	it('deduplicates and ranks results', () => {
-		const results = composeMemorySearchResults(
+		const composition = composeMemorySearchResults(
 			{
 				filters: {
 					classifications: ['decision'],
@@ -53,18 +51,61 @@ describe('retrieval composer', () => {
 			baseResults,
 		);
 
-		expect(results).toHaveLength(2);
-		expect(results[0]?.artifactId).toBe('artifact-1');
+		expect(composition.results).toHaveLength(2);
+		expect(composition.results[0]?.artifactId).toBe('artifact-1');
+		expect(composition.diagnostics.duplicateResultsCollapsed).toBeGreaterThan(
+			0,
+		);
+		expect(composition.diagnostics.rankingProfile).toBe('v2');
 	});
 
 	it('applies keyword fallback when scores are weak', () => {
-		const results = applyKeywordFallback(
+		const weakResults: MemorySearchResult[] = [
+			{
+				artifactId: 'artifact-weak',
+				classification: 'conversation',
+				score: 0.01,
+				snippet: 'Gateway memory notes from a very old session.',
+				source: 'session-log',
+				sourcePath: '/sessions/old.md',
+				sourceType: 'sessions',
+				updatedAt: '2024-01-01T00:00:00Z',
+			},
+		];
+		const composition = composeMemorySearchResults(
 			{
 				query: 'gateway memory',
 			},
-			baseResults,
+			weakResults,
 		);
 
-		expect(results[0]?.artifactId).toBe('artifact-2');
+		expect(composition.results[0]?.artifactId).toBe('artifact-weak');
+		expect(composition.diagnostics.keywordFallbackApplied).toBe(true);
+	});
+
+	it('computes a stronger ranked score for structural and trusted matches', () => {
+		const decisionResult = baseResults[0];
+		const conversationResult = baseResults[2];
+		expect(decisionResult).toBeDefined();
+		expect(conversationResult).toBeDefined();
+
+		const decisionScore = computeRankedScore(
+			{
+				filters: {
+					classifications: ['decision'],
+					sourceId: 'repo-main',
+				},
+				query: 'backend seam',
+			},
+			decisionResult as MemorySearchResult,
+		);
+		const conversationScore = computeRankedScore(
+			{
+				query: 'backend seam',
+			},
+			conversationResult as MemorySearchResult,
+		);
+
+		expect(decisionScore).toBeGreaterThan(conversationScore);
 	});
 });

@@ -953,11 +953,12 @@ Elevar a qualidade real do sistema, cobrindo os modos de falha previstos e estab
 
 ### Entregáveis
 
-- refinamento de classificação
-- pesos explícitos de ranking
-- refresh incremental
+- refinamento de classificação v2
+- pesos explícitos de ranking v2
+- cache/metadados observáveis em `memory_status`
+- refresh incremental agregado
 - cobertura dos failure modes
-- benchmark e diagnósticos
+- benchmark e diagnósticos locais reproduzíveis
 
 ### Implementação
 
@@ -999,6 +1000,8 @@ Elevar a qualidade real do sistema, cobrindo os modos de falha previstos e estab
 - Os failure modes do spec possuem mitigação implementada e documentada.
 - `memory_status` reflete estado real de saúde e refresh.
 - O ranking não depende apenas de similaridade semântica plana.
+- `pnpm diagnostic:stage7` e `pnpm benchmark:stage7` geram JSON válido em `.tmp/diagnostics/`.
+- `pnpm host-real:recommended-recall` e `pnpm host-real:sync-stage6` continuam verdes após o endurecimento da etapa.
 
 ### Riscos Principais
 
@@ -1233,7 +1236,7 @@ Fechar o ciclo de execução com scripts operacionais, validação automatizada 
 | 4 | Hooks + spool + ingest básico | concluída | hook pack real, spool local e ingestão ponta a ponta |
 | 5 | Context engine + Active Memory | concluída | injeção disciplinada de contexto, smoke tests por modo e prova canônica de recall |
 | 6 | Sync daemon + skill + infra | concluída | `sync-daemon`, `sync.db`, comandos públicos, cutover do spool e validação host-real |
-| 7 | Robustez, ranking e failure modes | não iniciada | qualidade e resiliência |
+| 7 | Robustez, ranking e failure modes | concluída | ranking v2, cache observável, refresh incremental, diagnósticos e mitigação dos failure modes |
 | 8 | Recursos avançados V2 | não iniciada | KG, pinned memory, diaries |
 | 9 | Scripts, CI e readiness | não iniciada | operação e manutenção previsíveis |
 

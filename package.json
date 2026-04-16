@@ -15,6 +15,8 @@
 		"typecheck": "pnpm --filter @mempalace-openclaw/shared build && pnpm -r --if-present typecheck",
 		"dev": "pnpm -r --parallel --if-present dev",
 		"validate-config": "node --eval \"const fs=require('node:fs'); const path=require('node:path'); const dir=path.join(process.cwd(),'examples'); for (const name of fs.readdirSync(dir)) { if (!name.endsWith('.json')) continue; const file=path.join(dir,name); JSON.parse(fs.readFileSync(file,'utf8')); console.log('validated', path.relative(process.cwd(), file)); }\"",
+		"diagnostic:stage7": "tsx ./scripts/diagnostics/stage7-report.mts diagnostic",
+		"benchmark:stage7": "tsx ./scripts/diagnostics/stage7-report.mts benchmark",
 		"host-real:bootstrap": "node ./scripts/host-real/bootstrap.mjs",
 		"host-real:manifest": "node ./scripts/host-real/manifest.mjs",
 		"host-real:memory-slot": "node ./scripts/host-real/memory-slot.mjs",

@@ -12,6 +12,8 @@ import {
 
 import type { SyncDaemonMemPalaceClient } from '../client/mcp-stdio-client.js';
 
+type ClassificationConfidence = 'high' | 'low' | 'medium';
+
 export type PreparedChunk = {
 	artifactId: string;
 	classification:
@@ -20,7 +22,10 @@ export type PreparedChunk = {
 		| 'decision'
 		| 'milestone'
 		| 'problem';
+	classificationConfidence: ClassificationConfidence;
+	classificationReason: string;
 	content: string;
+	fingerprint: string;
 	hash: string;
 	logicalPath: string;
 	memoryType: 'advice' | 'discoveries' | 'events' | 'facts';
@@ -31,39 +36,136 @@ export type PreparedChunk = {
 const MAX_CHUNK_CHARS = 1500;
 const MAX_CHUNK_LINES = 40;
 
-function classifyFromContent(
+function classifyFromMode(
 	source: SourceConfig,
-	content: string,
-): PreparedChunk['classification'] {
-	const mode = source.mode?.toLowerCase() ?? '';
-	if (
-		mode.includes('repo') ||
-		mode.includes('code') ||
-		mode.includes('document') ||
-		mode.includes('notes')
-	) {
-		return 'artifact';
+): Pick<
+	PreparedChunk,
+	'classification' | 'classificationConfidence' | 'classificationReason'
+> | null {
+	const normalizedMode = source.mode?.trim().toLowerCase();
+	if (!normalizedMode) {
+		return null;
 	}
 
+	if (normalizedMode.includes('milestone')) {
+		return {
+			classification: 'milestone',
+			classificationConfidence: 'high',
+			classificationReason: `source.mode:${normalizedMode}`,
+		};
+	}
+	if (normalizedMode.includes('session')) {
+		return {
+			classification: 'conversation',
+			classificationConfidence: 'high',
+			classificationReason: `source.mode:${normalizedMode}`,
+		};
+	}
+	if (
+		normalizedMode.includes('repo') ||
+		normalizedMode.includes('code') ||
+		normalizedMode.includes('notes') ||
+		normalizedMode.includes('documents')
+	) {
+		return {
+			classification: 'artifact',
+			classificationConfidence: 'high',
+			classificationReason: `source.mode:${normalizedMode}`,
+		};
+	}
+
+	return null;
+}
+
+function classifyFromContent(
+	content: string,
+): Pick<
+	PreparedChunk,
+	'classification' | 'classificationConfidence' | 'classificationReason'
+> | null {
 	const lower = content.toLowerCase();
-	if (lower.includes('decision') || lower.includes('decided')) {
-		return 'decision';
+	const checks = [
+		{
+			classification: 'decision',
+			matches: [/^decision:/m, /\bdecided\b/m],
+			reason: 'content-marker:decision',
+		},
+		{
+			classification: 'problem',
+			matches: [/^problem:/m, /\bincident\b/m, /\bbug\b/m],
+			reason: 'content-marker:problem',
+		},
+		{
+			classification: 'milestone',
+			matches: [/^milestone:/m, /\breleased\b/m, /\bshipped\b/m],
+			reason: 'content-marker:milestone',
+		},
+	] as const;
+
+	for (const check of checks) {
+		if (check.matches.some((pattern) => pattern.test(lower))) {
+			return {
+				classification: check.classification,
+				classificationConfidence: 'high',
+				classificationReason: check.reason,
+			};
+		}
+	}
+
+	return null;
+}
+
+function classifyFromPath(
+	relativePath: string,
+): Pick<
+	PreparedChunk,
+	'classification' | 'classificationConfidence' | 'classificationReason'
+> | null {
+	const normalizedPath = relativePath.replaceAll('\\', '/').toLowerCase();
+	if (
+		normalizedPath.includes('/sessions/') ||
+		normalizedPath.startsWith('sessions/')
+	) {
+		return {
+			classification: 'conversation',
+			classificationConfidence: 'medium',
+			classificationReason: 'path-signal:sessions',
+		};
 	}
 	if (
-		lower.includes('problem') ||
-		lower.includes('incident') ||
-		lower.includes('bug')
+		normalizedPath.includes('readme') ||
+		normalizedPath.includes('/docs/') ||
+		normalizedPath.endsWith('.md') ||
+		normalizedPath.endsWith('.txt')
 	) {
-		return 'problem';
+		return {
+			classification: 'artifact',
+			classificationConfidence: 'medium',
+			classificationReason: 'path-signal:document',
+		};
 	}
-	if (
-		lower.includes('milestone') ||
-		lower.includes('released') ||
-		lower.includes('shipped')
-	) {
-		return 'milestone';
-	}
-	return source.kind === 'spool' ? 'conversation' : 'artifact';
+
+	return null;
+}
+
+function classifyChunk(params: {
+	content: string;
+	relativePath: string;
+	source: SourceConfig;
+}): Pick<
+	PreparedChunk,
+	'classification' | 'classificationConfidence' | 'classificationReason'
+> {
+	return (
+		classifyFromMode(params.source) ??
+		classifyFromContent(params.content) ??
+		classifyFromPath(params.relativePath) ?? {
+			classification:
+				params.source.kind === 'spool' ? 'conversation' : 'artifact',
+			classificationConfidence: 'low',
+			classificationReason: `source.kind:${params.source.kind}`,
+		}
+	);
 }
 
 function mapMemoryType(
@@ -118,7 +220,15 @@ export function prepareSourceChunks(params: {
 }): PreparedChunk[] {
 	const chunks = splitContentIntoChunks(params.content);
 	return chunks.map((chunk, index) => {
-		const classification = classifyFromContent(params.source, chunk);
+		const classified = classifyChunk({
+			content: chunk,
+			relativePath: params.relativePath,
+			source: params.source,
+		});
+		const fingerprint = createFingerprint({
+			chunk,
+			sourceId: params.source.id,
+		});
 		const hash = createFingerprint({
 			chunk,
 			logicalPath: params.logicalPath,
@@ -126,11 +236,14 @@ export function prepareSourceChunks(params: {
 		});
 		return {
 			artifactId: `${params.source.id}-${hash.slice(0, 16)}`,
-			classification,
+			classification: classified.classification,
+			classificationConfidence: classified.classificationConfidence,
+			classificationReason: classified.classificationReason,
 			content: chunk,
+			fingerprint,
 			hash,
 			logicalPath: `${params.logicalPath}#chunk=${index + 1}`,
-			memoryType: mapMemoryType(classification),
+			memoryType: mapMemoryType(classified.classification),
 			sourceId: params.source.id,
 			sourcePath: `${path.posix.join('/sources', params.source.id, params.relativePath)}#chunk=${index + 1}`,
 		};
@@ -146,6 +259,8 @@ export function buildPromoteInput(
 	source: SourceConfig,
 ): MemoryPromoteInput {
 	const metadata = {
+		classificationConfidence: chunk.classificationConfidence,
+		classificationReason: chunk.classificationReason,
 		...(source.defaults?.hall ? { defaultsHall: source.defaults.hall } : {}),
 		...(source.defaults?.wing ? { defaultsWing: source.defaults.wing } : {}),
 		logicalPath: chunk.logicalPath,

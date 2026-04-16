@@ -96,6 +96,31 @@ export const RuntimeHealthSchema = z
 	.strict();
 export type RuntimeHealth = z.infer<typeof RuntimeHealthSchema>;
 
+export const MemoryStatusCacheSchema = z
+	.object({
+		artifactEntries: z.number().int().nonnegative(),
+		lastInvalidatedAt: isoDatetimeStringSchema.optional(),
+		lastRefreshAt: isoDatetimeStringSchema.optional(),
+		lastRefreshReason: RuntimeRefreshReasonSchema.optional(),
+		metadataEntries: z.number().int().nonnegative(),
+		stale: z.boolean(),
+	})
+	.strict();
+export type MemoryStatusCache = z.infer<typeof MemoryStatusCacheSchema>;
+
+export const MemoryStatusDiagnosticsSchema = z
+	.object({
+		duplicateResultsCollapsed: z.number().int().nonnegative(),
+		keywordFallbackApplied: z.boolean(),
+		lastRefreshLatencyMs: z.number().nonnegative().optional(),
+		lastSearchLatencyMs: z.number().nonnegative().optional(),
+		rankingProfile: z.literal('v2'),
+	})
+	.strict();
+export type MemoryStatusDiagnostics = z.infer<
+	typeof MemoryStatusDiagnosticsSchema
+>;
+
 export const MemorySearchFiltersSchema = z
 	.object({
 		classifications: z.array(SessionClassificationSchema).optional(),
@@ -161,7 +186,9 @@ export type MemoryArtifact = z.infer<typeof MemoryArtifactSchema>;
 export const MemoryStatusSchema = z
 	.object({
 		activeMemoryCompatible: z.boolean(),
+		cache: MemoryStatusCacheSchema,
 		contextEngineCompatible: z.boolean(),
+		diagnostics: MemoryStatusDiagnosticsSchema,
 		ingestionLagSeconds: z.number().nonnegative(),
 		memoryCount: z.number().int().nonnegative(),
 		runtime: RuntimeHealthSchema,

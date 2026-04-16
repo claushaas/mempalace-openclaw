@@ -188,6 +188,7 @@ describe('SyncDaemon', () => {
 
 			const result = await daemon.runOnce();
 			expect(result.artifactsPromoted).toBeGreaterThanOrEqual(2);
+			expect(result.duplicatesAvoided).toBe(0);
 			expect(result.refreshIds.length).toBeGreaterThanOrEqual(2);
 			expect(
 				client.artifacts.some((artifact) => artifact.source === 'docs-main'),
@@ -199,6 +200,90 @@ describe('SyncDaemon', () => {
 			).toBe(true);
 			expect(fs.readdirSync(statePaths.processedSpoolDir).length).toBe(1);
 			expect(fs.readdirSync(statePaths.pendingSpoolDir).length).toBe(0);
+		} finally {
+			daemon.close();
+		}
+	});
+
+	it('skips refresh when no source or spool changes are detected', async () => {
+		const baseDir = createTempDir();
+		const docsDir = path.join(baseDir, 'docs');
+		fs.mkdirSync(docsDir, { recursive: true });
+		fs.writeFileSync(
+			path.join(docsDir, 'qa.md'),
+			'# QA Notes\n\nDecision: movie night snack is lemon pepper wings.\n',
+		);
+		const sourceConfigPath = path.join(baseDir, 'source.json');
+		fs.writeFileSync(
+			sourceConfigPath,
+			JSON.stringify(
+				{
+					id: 'docs-main',
+					include: ['**/*.md'],
+					kind: 'filesystem',
+					path: docsDir,
+				},
+				null,
+				2,
+			),
+		);
+
+		const statePaths = createStatePaths(baseDir);
+		const client = new FakeMemPalaceClient();
+		const daemon = createSyncDaemon({
+			clientFactory: () => client as never,
+			hostConfig: {},
+			statePaths,
+		});
+		try {
+			daemon.addSourceFromFile(sourceConfigPath);
+			const firstRun = await daemon.runOnce();
+			const secondRun = await daemon.runOnce();
+
+			expect(firstRun.refreshIds.length).toBeGreaterThan(0);
+			expect(secondRun.artifactsPromoted).toBe(0);
+			expect(secondRun.refreshIds).toHaveLength(0);
+		} finally {
+			daemon.close();
+		}
+	});
+
+	it('avoids promoting duplicate chunk fingerprints within the same run', async () => {
+		const baseDir = createTempDir();
+		const docsDir = path.join(baseDir, 'docs');
+		fs.mkdirSync(docsDir, { recursive: true });
+		const repeatedContent =
+			'Decision: runtime refresh must be aggregated, not fired per promoted chunk.\n';
+		fs.writeFileSync(path.join(docsDir, 'a.md'), repeatedContent);
+		fs.writeFileSync(path.join(docsDir, 'b.md'), repeatedContent);
+		const sourceConfigPath = path.join(baseDir, 'source.json');
+		fs.writeFileSync(
+			sourceConfigPath,
+			JSON.stringify(
+				{
+					id: 'docs-main',
+					include: ['**/*.md'],
+					kind: 'filesystem',
+					path: docsDir,
+				},
+				null,
+				2,
+			),
+		);
+
+		const statePaths = createStatePaths(baseDir);
+		const client = new FakeMemPalaceClient();
+		const daemon = createSyncDaemon({
+			clientFactory: () => client as never,
+			hostConfig: {},
+			statePaths,
+		});
+		try {
+			daemon.addSourceFromFile(sourceConfigPath);
+			const result = await daemon.runOnce();
+
+			expect(result.artifactsPromoted).toBe(1);
+			expect(result.duplicatesAvoided).toBeGreaterThanOrEqual(1);
 		} finally {
 			daemon.close();
 		}

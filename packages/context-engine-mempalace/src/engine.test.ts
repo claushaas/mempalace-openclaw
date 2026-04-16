@@ -314,4 +314,125 @@ describe('createContextEngine', () => {
 		expect(delegateCompact).toHaveBeenCalled();
 		expect(result.reason).toBe('delegated');
 	});
+
+	it('limits entries per source and avoids conversation-only context when better classes exist', async () => {
+		const publicDir = createTempDir();
+		for (const [artifactId, value] of [
+			[
+				'artifact-decision',
+				{
+					artifactId: 'artifact-decision',
+					classification: 'decision',
+					content: 'Decision artifact.',
+					source: 'same-source',
+					sourcePath: '/memory/decision.md',
+					sourceType: 'filesystem',
+					updatedAt: '2026-04-15T12:00:00Z',
+				},
+			],
+			[
+				'artifact-problem',
+				{
+					artifactId: 'artifact-problem',
+					classification: 'problem',
+					content: 'Problem artifact.',
+					source: 'same-source',
+					sourcePath: '/memory/problem.md',
+					sourceType: 'filesystem',
+					updatedAt: '2026-04-15T12:00:00Z',
+				},
+			],
+			[
+				'artifact-conversation',
+				{
+					artifactId: 'artifact-conversation',
+					classification: 'conversation',
+					content: 'Conversation artifact.',
+					source: 'same-source',
+					sourcePath: '/memory/conversation.md',
+					sourceType: 'sessions',
+					updatedAt: '2026-04-15T12:00:00Z',
+				},
+			],
+		] as const) {
+			writePublicArtifact(publicDir, artifactId, value);
+		}
+
+		const manager = {
+			readFile: vi.fn(async ({ relPath }: { relPath: string }) => ({
+				path: relPath,
+				text: `${relPath} text`,
+			})),
+			search: vi.fn(async () => [
+				{
+					endLine: 1,
+					path: 'artifact-conversation',
+					score: 0.9,
+					snippet: 'Conversation artifact.',
+					source: 'memory',
+					startLine: 1,
+				},
+				{
+					endLine: 1,
+					path: 'artifact-decision',
+					score: 0.8,
+					snippet: 'Decision artifact.',
+					source: 'memory',
+					startLine: 1,
+				},
+				{
+					endLine: 1,
+					path: 'artifact-problem',
+					score: 0.7,
+					snippet: 'Problem artifact.',
+					source: 'memory',
+					startLine: 1,
+				},
+			]),
+		};
+		const engine = createContextEngine(
+			createApi(),
+			{
+				includeMemoryPromptAddition: true,
+				maxArtifactLines: 40,
+				maxContextTokens: 1200,
+				maxEntries: 6,
+				minScore: 0.15,
+			},
+			{
+				buildMemoryPromptAddition: vi.fn(() => 'memory prompt'),
+				delegateCompact: vi.fn(async () => ({ compacted: false, ok: true })),
+				getSearchManager: vi.fn(async () => ({ manager: manager as never })),
+				listPublicArtifacts: vi.fn(async () =>
+					[
+						'artifact-decision',
+						'artifact-problem',
+						'artifact-conversation',
+					].map((artifactId) => ({
+						absolutePath: path.join(publicDir, `${artifactId}.json`),
+						agentIds: ['qa'],
+						contentType: 'json' as const,
+						kind: 'mempalace-memory-artifact',
+						relativePath: `${artifactId}.json`,
+						workspaceDir: publicDir,
+					})),
+				),
+				resolveAgentId: vi.fn(() => 'qa'),
+			},
+		);
+
+		const result = await engine.assemble({
+			messages: [],
+			prompt: 'Explain the current issue.',
+			sessionId: 'session',
+			sessionKey: 'session-key',
+			tokenBudget: 1200,
+		});
+
+		expect(result.systemPromptAddition).toContain('classification: decision');
+		expect(result.systemPromptAddition).toContain('classification: problem');
+		expect(result.systemPromptAddition).not.toContain(
+			'classification: conversation',
+		);
+	});
 });

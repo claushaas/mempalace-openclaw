@@ -1,0 +1,1 @@
+Hooks keep the corpus fresh, but they are not the main pre-reply recall mechanism.

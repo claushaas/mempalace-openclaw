@@ -59,6 +59,7 @@ Cobrem:
 - runtime -> context engine;
 - config examples -> validação -> boot mínimo;
 - refresh e status do runtime.
+- diagnósticos e benchmark locais com corpus fixo da Etapa 7.
 
 As fronteiras lógicas dessas integrações estão descritas em [HOOKS.md](HOOKS.md), [MEMORY_RUNTIME.md](MEMORY_RUNTIME.md) e [CONTEXT_ENGINE.md](CONTEXT_ENGINE.md).
 
@@ -448,6 +449,24 @@ Devem existir regressões para:
 - múltiplas fontes sobrepostas;
 - falha parcial do daemon;
 - refresh após nova ingestão.
+
+Além disso, a Etapa 7 adiciona os scripts locais:
+
+- `pnpm diagnostic:stage7`
+  - gera `.tmp/diagnostics/stage7-diagnostic.json`
+  - valida ranking v2, cache observável, steady state sem refresh e mitigação documentada dos failure modes.
+- `pnpm benchmark:stage7`
+  - gera `.tmp/diagnostics/stage7-benchmark.json`
+  - mede latência de busca, latência de refresh, throughput de ingest e sinais de dedupe.
+
+Regressões host-real obrigatórias da Etapa 7:
+
+- `pnpm host-real:recommended-recall`
+- `pnpm host-real:sync-stage6`
+
+Regressão host-real best-effort:
+
+- `pnpm host-real:full-recall`
 
 ---
 

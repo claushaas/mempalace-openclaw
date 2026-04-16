@@ -99,6 +99,8 @@ Scripts da raiz:
 - `pnpm typecheck`
 - `pnpm dev`
 - `pnpm validate-config`
+- `pnpm diagnostic:stage7`
+- `pnpm benchmark:stage7`
 
 O bootstrap do monorepo já está concluído. Nesta altura do roadmap, `shared`, `memory-mempalace`, `context-engine-mempalace`, `mempalace-ingest-hooks`, `sync-daemon` e `skill-mempalace-sync` já existem.
 
@@ -145,7 +147,7 @@ O estado detalhado da compatibilidade está em [docs/COMPATIBILITY_MATRIX.md](do
 
 ## Estado Atual
 
-O repositório já tem bootstrap do monorepo, runtime de memória funcional, hook pack enqueue-only, `sync-daemon` operacional, skill operacional e context engine funcional com prova observável de recall no modo `recommended`.
+O repositório já tem bootstrap do monorepo, runtime de memória funcional, hook pack enqueue-only, `sync-daemon` operacional, skill operacional, context engine funcional com prova observável de recall no modo `recommended` e endurecimento local de ranking/cache/failure modes da Etapa 7.
 
 O que já está fechado:
 
@@ -165,6 +167,7 @@ O que já está fechado:
 - caminho de configuração de Active Memory investigado e classificado
 - contratos operacionais documentados por subsistema
 - package `@mempalace-openclaw/shared` com schemas, tipos, erros e utilidades canônicas
+- ranking explícito `v2`, cache observável em `memory_status` e diagnósticos locais reproduzíveis da Etapa 7
 
 O que ainda não existe:
 

@@ -103,12 +103,19 @@ describe('MemoryRuntimeService', () => {
 		expect(status.runtime.status).toBe('ready');
 		expect(status.contextEngineCompatible).toBe(true);
 		expect(status.activeMemoryCompatible).toBe(true);
+		expect(status.cache.artifactEntries).toBeGreaterThanOrEqual(1);
+		expect(status.cache.metadataEntries).toBeGreaterThanOrEqual(1);
+		expect(status.cache.stale).toBe(false);
+		expect(status.diagnostics.rankingProfile).toBe('v2');
 
 		await expect(
 			service.index({
 				reason: 'manual-reindex',
 			}),
 		).resolves.toBeUndefined();
+		const staleStatus = await service.status();
+		expect(staleStatus.cache.stale).toBe(true);
+		expect(staleStatus.cache.lastRefreshReason).toBe('manual-reindex');
 
 		const promoted = await service.promote({
 			classification: 'artifact',
@@ -117,5 +124,7 @@ describe('MemoryRuntimeService', () => {
 			source: 'manual',
 		});
 		expect(promoted.content).toBe('new memory');
+		const refreshedStatus = await service.status();
+		expect(refreshedStatus.cache.stale).toBe(false);
 	});
 });

@@ -67,6 +67,8 @@ Regra:
   - recency;
   - dedupe por `artifactId` e redundância textual.
 - pruning remove redundância antes de remover diversidade de fontes.
+- o engine limita a no máximo `2` entradas por `source`.
+- se houver ao menos um item `decision`, `problem` ou `milestone`, o bloco final não deve ficar composto apenas por `conversation`.
 - pruning nunca remove provenance dos itens mantidos.
 
 ## Ordem de Montagem de Contexto

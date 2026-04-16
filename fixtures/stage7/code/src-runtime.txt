@@ -1,0 +1,3 @@
+artifact: retrieval ranking profile v2
+artifact: source confidence should reward filesystem, git and documents over sessions
+

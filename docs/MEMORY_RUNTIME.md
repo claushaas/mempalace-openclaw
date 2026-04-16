@@ -62,7 +62,7 @@ Este slot não é:
 - input lógico
   - nenhum obrigatório; pode aceitar escopo ou verbosity.
 - output lógico
-  - estado do runtime, conectividade com MemPalace, versão lógica do adapter e sinais de refresh pendente.
+  - estado do runtime, conectividade com MemPalace, sinais observáveis de cache e diagnósticos do adapter.
 - invariantes
   - deve refletir o estado real observável do adapter e do backend.
 - comportamento esperado em erro
@@ -107,6 +107,19 @@ O retrieval composer do `memory-mempalace` deve:
 - preservar provenance em todos os resultados;
 - respeitar budget de contexto desde o primeiro corte, ainda que o pruning principal fique a cargo do context engine.
 
+Perfil atual endurecido na Etapa 7:
+
+- `rankingProfile = "v2"`;
+- score final explícito composto por:
+  - similaridade semântica do backend;
+  - recência;
+  - confiança da fonte;
+  - structural match;
+  - prioridade por classificação;
+  - campo reservado para `pinnedMemoryWeight = 0`;
+- colapso observável de duplicatas por `artifactId` e fingerprint de snippet;
+- fallback por keyword ainda permitido, mas agora exposto em `memory_status.diagnostics.keywordFallbackApplied`.
+
 O retrieval composer não deve:
 
 - depender de resumos como fonte de verdade;
@@ -135,6 +148,20 @@ Além das operações `memory_*`, o runtime expõe a capability complementar:
 - `publicArtifacts.listArtifacts(...)`
 
 Essa surface publica um catálogo de artefatos JSON espelhados em disco para consumo do context engine e de harnesses host-real.
+
+`memory_status` agora também expõe:
+
+- `cache`
+  - quantidade de artefatos e metadados em cache;
+  - último refresh observado;
+  - reason do refresh;
+  - flag `stale`;
+- `diagnostics`
+  - `rankingProfile`;
+  - latência da última busca;
+  - latência do último refresh;
+  - quantidade de resultados colapsados por dedupe;
+  - uso do fallback por keyword.
 
 ## Integração com MemPalace
 
@@ -175,7 +202,7 @@ Consequência prática:
 ## recomendado
 
 - integração com `claw-context-mempalace`.
-- ranking com recency e classificação leve.
+- ranking v2 com pesos explícitos e cache observável.
 - harness observável de recall automático em `recommended`.
 
 ## v2
