@@ -80,7 +80,11 @@ Os limites atualmente observados do host-alvo estão em [COMPATIBILITY_MATRIX.md
 
 Os harnesses abaixo existem para fechar o seam com OpenClaw antes e durante a implementação dos packages do produto.
 
-Os harnesses com probes não contam como prova da integração final `memory-mempalace` ou `claw-context-mempalace`. A partir da Etapa 3, `pnpm host-real:memory-mempalace` passa a contar como prova host-real do package final de memória, mas ainda não como prova de recall automático.
+Os harnesses com probes não contam como prova da integração final `memory-mempalace` ou `claw-context-mempalace`. A partir das Etapas 3 e 5:
+
+- `pnpm host-real:memory-mempalace` conta como prova host-real do package final de memória;
+- `pnpm host-real:context-engine-mempalace` conta como prova host-real do package final de context engine;
+- `pnpm host-real:recommended-recall` é o harness canônico de aceite para recall automático observável.
 
 Todos usam:
 
@@ -213,6 +217,73 @@ Limite:
 - este harness prova captura, spool, ingestão e refresh observáveis;
 - ele não prova recall automático pré-resposta.
 
+### 3.9 `pnpm host-real:context-engine-mempalace`
+
+Prova:
+
+- o package final `packages/context-engine-mempalace` instala por link em host real;
+- o host aceita `plugins.slots.contextEngine = "claw-context-mempalace"`;
+- `plugins inspect claw-context-mempalace --json` registra o engine final;
+- o bootstrap do gateway sobe com o package final ativo.
+
+Artefatos:
+
+- `.tmp/host-real-results/host-real-context-engine-mempalace.json`
+- `.tmp/host-real-results/claw-context-mempalace.jsonl`
+
+### 3.10 `pnpm host-real:smoke:memory-only`
+
+Prova:
+
+- o modo `memory-only` inicializa com `memory-mempalace`;
+- o host seleciona o slot `memory` final;
+- o comportamento degradado sem context engine é observável e documentável.
+
+### 3.11 `pnpm host-real:smoke:recommended`
+
+Prova:
+
+- o host inicializa com `memory-mempalace` + `claw-context-mempalace`;
+- os dois packages finais carregam em conjunto;
+- o contexto gerado pelo engine final chega ao provider mock local.
+
+### 3.12 `pnpm host-real:recommended-recall`
+
+Prova:
+
+- `claw-context-mempalace` executa `assemble()` antes da resposta principal;
+- o engine consulta `manager.search(...)` e `manager.readFile(...)` do runtime final;
+- o bloco `MemPalace Recall Context` é gerado;
+- a resposta final contém o `needle` esperado;
+- nenhuma skill explícita de memória foi invocada pelo usuário.
+
+Status atual:
+
+- `validated`
+
+### 3.13 `pnpm host-real:smoke:full`
+
+Prova:
+
+- o host inicializa com `memory-mempalace` + `claw-context-mempalace` + `active-memory`;
+- a surface final de `plugins.entries.active-memory` convive com os packages finais.
+
+### 3.14 `pnpm host-real:full-recall`
+
+Prova:
+
+- best-effort real do modo `full`;
+- além da resposta final, o harness tenta observar transcript do pass próprio de `active-memory`.
+
+Status atual:
+
+- `partially_validated`
+
+Motivo:
+
+- a resposta correta aparece, mas a evidência ainda vem do `claw-context-mempalace`;
+- o transcript esperado de `active-memory` com `memory_search` + `memory_get` antes da resposta principal ainda não ficou observável.
+
 ---
 
 ## 4. Modos Operacionais e Smoke Tests
@@ -232,13 +303,11 @@ Smoke test mínimo:
 
 Status atual:
 
-- `pending`
+- `validated`
 
-Bloqueio atual:
+Observação:
 
-- o package real `packages/memory-mempalace` já existe e tem harness host-real dedicado.
-- ainda falta o smoke que prove consulta útil ponta a ponta do runtime via host, e não apenas slot loading + bootstrap.
-- o contrato alvo desse runtime está em [MEMORY_RUNTIME.md](MEMORY_RUNTIME.md).
+- este modo continua operacional, mas não é o caminho canônico para recall automático forte.
 
 ### 4.2 `recommended`
 
@@ -255,12 +324,11 @@ Smoke test mínimo:
 
 Status atual:
 
-- `pending`
+- `validated`
 
-Bloqueio atual:
+Observação:
 
-- depende dos packages reais `packages/memory-mempalace` e `packages/context-engine-mempalace`.
-- depende também do formato de injeção e budget descritos em [CONTEXT_ENGINE.md](CONTEXT_ENGINE.md).
+- `pnpm host-real:recommended-recall` é o critério canônico de aceite do projeto para recall automático observável.
 
 ### 4.3 `full`
 
@@ -277,11 +345,12 @@ Smoke test mínimo:
 
 Status atual:
 
-- `pending`
+- `partially_validated`
 
 Bloqueio atual:
 
-- depende dos plugins reais e do path Active Memory operacional.
+- o bootstrap do modo `full` já passa com os plugins finais.
+- o pass próprio de Active Memory ainda não ficou observável em transcript.
 - os limites atuais de enablement estão em [ACTIVE_MEMORY.md](ACTIVE_MEMORY.md).
 
 ---
@@ -313,13 +382,13 @@ O primeiro harness deve usar um corpus pequeno e determinístico, com:
 
 ### 5.3 Estado atual
 
-- inexistente
+- `recommended`: `validated`
+- `full`: `partially_validated`
 
 Razão:
 
-- Etapa 0A fecha apenas o seam do host.
-- a Etapa 1 congela os contratos operacionais, mas ainda não implementa o runtime nem o harness final.
-- A prova canônica depende dos packages finais e do path ingestão -> retrieval -> context injection real.
+- o harness `pnpm host-real:recommended-recall` já prova o fluxo ingestão -> retrieval -> context injection -> resposta final correta sem skill explícita;
+- o harness `pnpm host-real:full-recall` ainda não captura o transcript esperado do pass próprio de Active Memory antes da resposta principal.
 
 ---
 

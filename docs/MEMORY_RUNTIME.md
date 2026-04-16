@@ -130,6 +130,12 @@ Metadados recomendados:
 - flags de promote ou pin quando existirem;
 - indicação de origem factual, conversacional ou artefato externo.
 
+Além das operações `memory_*`, o runtime expõe a capability complementar:
+
+- `publicArtifacts.listArtifacts(...)`
+
+Essa surface publica um catálogo de artefatos JSON espelhados em disco para consumo do context engine e de harnesses host-real.
+
 ## Integração com MemPalace
 
 - MemPalace é o backend durável e a source of truth.
@@ -140,6 +146,8 @@ Metadados recomendados:
 ## Integração com Active Memory e Context Engine
 
 - `claw-context-mempalace` consome o runtime de memória para montar contexto.
+- o runtime materializa um mirror público em `state/plugins/memory-mempalace/public-artifacts/*.json`.
+- esse mirror é derivado do MemPalace e não substitui o backend durável.
 - Active Memory, quando suportado operacionalmente, deve acionar recall automático forte usando o runtime como fonte de recuperação.
 - nem Active Memory nem context engine devem duplicar storage durável fora do MemPalace.
 
@@ -153,11 +161,13 @@ Descoberta host-real já validada:
 Consequência prática:
 
 - a prova do runtime deve vir de harnesses próprios, smoke tests de modo operacional e, depois, da prova observável de recall automático.
+- em ambiente host-real linkado, o catálogo público em memória do SDK pode não refletir o provider do plugin final; por isso o `claw-context-mempalace` usa o seam público primeiro e cai para o mirror público em disco quando necessário.
 
 ## v1 obrigatório
 
 - `plugins.slots.memory = "memory-mempalace"`.
 - contratos `memory_search`, `memory_get`, `memory_status`, `memory_index`, `memory_promote`.
+- capability pública `publicArtifacts.listArtifacts(...)`.
 - preservation de provenance.
 - MemPalace como source of truth.
 - `memory_index` com efeito operacional real.

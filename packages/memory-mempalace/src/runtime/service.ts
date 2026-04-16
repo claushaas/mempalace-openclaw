@@ -23,7 +23,12 @@ export class MemoryRuntimeService {
 
 	private readonly knownArtifactIds = new Set<string>();
 
-	public constructor(private readonly client: MemPalaceClient) {}
+	public constructor(
+		private readonly client: MemPalaceClient,
+		private readonly options: {
+			onArtifactRecorded?: (artifact: MemoryArtifact) => void;
+		} = {},
+	) {}
 
 	public async close(): Promise<void> {
 		if ('close' in this.client && typeof this.client.close === 'function') {
@@ -113,5 +118,6 @@ export class MemoryRuntimeService {
 	private recordArtifact(artifact: MemoryArtifact): void {
 		this.artifactCache.set(artifact.artifactId, artifact);
 		this.knownArtifactIds.add(artifact.artifactId);
+		this.options.onArtifactRecorded?.(artifact);
 	}
 }

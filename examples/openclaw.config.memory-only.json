@@ -1,5 +1,21 @@
 {
 	"plugins": {
+		"entries": {
+			"memory-mempalace": {
+				"config": {
+					"args": ["/absolute/path/to/mempalace-mcp-server.mjs"],
+					"command": "node",
+					"defaultResultLimit": 8,
+					"defaultTokenBudget": 1200,
+					"env": {
+						"MEMPALACE_ENDPOINT": "replace-me"
+					},
+					"timeoutMs": 5000,
+					"transport": "stdio"
+				},
+				"enabled": true
+			}
+		},
 		"slots": {
 			"memory": "memory-mempalace"
 		}

@@ -1,0 +1,39 @@
+{
+	"name": "@mempalace-openclaw/context-engine-mempalace",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"main": "dist/index.js",
+	"module": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		}
+	},
+	"openclaw": {
+		"extensions": [
+			"./dist/index.js"
+		],
+		"compat": {
+			"pluginApi": ">=2026.4.14",
+			"minGatewayVersion": "2026.4.14"
+		},
+		"build": {
+			"openclawVersion": "2026.4.14",
+			"pluginSdkVersion": "2026.4.14"
+		}
+	},
+	"scripts": {
+		"build": "tsup",
+		"test": "vitest run",
+		"typecheck": "tsc -p tsconfig.json --noEmit"
+	},
+	"dependencies": {
+		"@mempalace-openclaw/shared": "workspace:*",
+		"openclaw": "2026.4.14",
+		"zod": "^4.1.12"
+	}
+}

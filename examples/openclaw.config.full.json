@@ -1,12 +1,45 @@
 {
-	"agents": {
-		"defaults": {
-			"activeMemory": {
+	"plugins": {
+		"entries": {
+			"active-memory": {
+				"config": {
+					"allowedChatTypes": ["direct"],
+					"enabled": true,
+					"logging": true,
+					"maxSummaryChars": 220,
+					"persistTranscripts": true,
+					"promptStyle": "recall-heavy",
+					"queryMode": "recent",
+					"timeoutMs": 15000,
+					"transcriptDir": "mempalace-stage5"
+				},
+				"enabled": true
+			},
+			"claw-context-mempalace": {
+				"config": {
+					"includeMemoryPromptAddition": true,
+					"maxArtifactLines": 40,
+					"maxContextTokens": 1200,
+					"maxEntries": 6,
+					"minScore": 0.15
+				},
+				"enabled": true
+			},
+			"memory-mempalace": {
+				"config": {
+					"args": ["/absolute/path/to/mempalace-mcp-server.mjs"],
+					"command": "node",
+					"defaultResultLimit": 8,
+					"defaultTokenBudget": 1200,
+					"env": {
+						"MEMPALACE_ENDPOINT": "replace-me"
+					},
+					"timeoutMs": 5000,
+					"transport": "stdio"
+				},
 				"enabled": true
 			}
-		}
-	},
-	"plugins": {
+		},
 		"slots": {
 			"contextEngine": "claw-context-mempalace",
 			"memory": "memory-mempalace"

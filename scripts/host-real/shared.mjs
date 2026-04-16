@@ -16,7 +16,16 @@ export const FIXTURES_DIR = path.join(ROOT_DIR, 'fixtures', 'host-real');
 export const MEMORY_PROBE_DIR = path.join(FIXTURES_DIR, 'probe-memory-slot');
 export const CONTEXT_PROBE_DIR = path.join(FIXTURES_DIR, 'probe-context-engine-slot');
 export const MEMPALACE_MCP_SHIM_PATH = path.join(FIXTURES_DIR, 'mempalace-mcp-shim.mjs');
+export const MOCK_OPENAI_PROVIDER_PATH = path.join(
+	FIXTURES_DIR,
+	'mock-openai-provider.mjs',
+);
 export const MEMORY_MEMPALACE_DIR = path.join(ROOT_DIR, 'packages', 'memory-mempalace');
+export const CONTEXT_ENGINE_MEMPALACE_DIR = path.join(
+	ROOT_DIR,
+	'packages',
+	'context-engine-mempalace',
+);
 export const MEMPALACE_INGEST_HOOKS_DIR = path.join(
 	ROOT_DIR,
 	'packages',
@@ -25,8 +34,21 @@ export const MEMPALACE_INGEST_HOOKS_DIR = path.join(
 export const MEMORY_PROBE_ID = 'probe-memory-slot';
 export const CONTEXT_PROBE_ID = 'probe-context-engine-slot';
 export const MEMORY_MEMPALACE_ID = 'memory-mempalace';
+export const CONTEXT_ENGINE_MEMPALACE_ID = 'claw-context-mempalace';
 export const MEMPALACE_INGEST_HOOKS_ID = '@mempalace-openclaw/mempalace-ingest-hooks';
 export const MEMPALACE_INGEST_HOOK_EVIDENCE_ID = 'mempalace-ingest-hooks';
+export const MEMPALACE_MCP_SHIM_STATE_PATH = path.join(
+	HOST_ROOT_DIR,
+	'mempalace-mcp-state.json',
+);
+export const MOCK_OPENAI_READY_PATH = path.join(
+	RESULTS_DIR,
+	'mock-openai-ready.json',
+);
+export const MOCK_OPENAI_REQUEST_LOG_PATH = path.join(
+	RESULTS_DIR,
+	'mock-openai-requests.jsonl',
+);
 
 export function hostEnv(extraEnv = {}) {
 	return {
@@ -55,7 +77,19 @@ export async function withTemporarilyDetachedNodeModules(pluginDir, callback) {
 		`${path.basename(pluginDir)}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
 	);
 
-	fs.renameSync(nodeModulesPath, stashPath);
+	try {
+		fs.renameSync(nodeModulesPath, stashPath);
+	} catch (error) {
+		if (
+			error &&
+			typeof error === 'object' &&
+			'code' in error &&
+			error.code === 'ENOENT'
+		) {
+			return callback();
+		}
+		throw error;
+	}
 	try {
 		return await callback();
 	} finally {
@@ -230,6 +264,28 @@ export async function wait(ms) {
 	});
 }
 
+export async function waitForFile(filePath, timeoutMs = 10000) {
+	const startedAt = Date.now();
+	while (Date.now() - startedAt < timeoutMs) {
+		if (fs.existsSync(filePath)) {
+			return filePath;
+		}
+		await wait(100);
+	}
+	throw new Error(`Timed out waiting for file: ${filePath}`);
+}
+
+export function readJsonLines(filePath) {
+	if (!fs.existsSync(filePath)) {
+		return [];
+	}
+	return fs
+		.readFileSync(filePath, 'utf8')
+		.split('\n')
+		.filter(Boolean)
+		.map((line) => JSON.parse(line));
+}
+
 export function buildBaseReport(name, extra = {}) {
 	return {
 		name,
@@ -255,4 +311,142 @@ export function runGatewayProbe(args = ['gateway', 'run', '--verbose']) {
 		stdout: child.stdout ?? '',
 		timedOut: child.error?.code === 'ETIMEDOUT'
 	};
+}
+
+export function buildMockProviderConfig(baseUrl) {
+	return {
+		agents: {
+			defaults: {
+				model: {
+					primary: 'mock-openai/recall-model',
+				},
+				models: {
+					'mock-openai/recall-model': {
+						alias: 'Recall Mock',
+					},
+				},
+			},
+		},
+		models: {
+			providers: {
+				'mock-openai': {
+					api: 'openai-completions',
+					apiKey: 'mock-openai-key',
+					authHeader: true,
+					baseUrl,
+					models: [
+						{
+							contextWindow: 200000,
+							cost: {
+								cacheRead: 0,
+								cacheWrite: 0,
+								input: 0,
+								output: 0,
+							},
+							id: 'recall-model',
+							input: ['text'],
+							maxTokens: 4096,
+							name: 'Recall Mock Model',
+							reasoning: false,
+						},
+					],
+					request: {
+						allowPrivateNetwork: true,
+					},
+				},
+			},
+		},
+	};
+}
+
+export async function startMockOpenAIProvider(options = {}) {
+	fs.rmSync(MOCK_OPENAI_READY_PATH, { force: true });
+	fs.rmSync(MOCK_OPENAI_REQUEST_LOG_PATH, { force: true });
+
+	const child = spawn(process.execPath, [MOCK_OPENAI_PROVIDER_PATH], {
+		cwd: ROOT_DIR,
+		env: {
+			...process.env,
+			MOCK_OPENAI_EXPECTED_NEEDLE:
+				options.expectedNeedle ?? 'lemon pepper wings',
+			MOCK_OPENAI_MEMORY_QUERY:
+				options.memoryQuery ?? 'QA movie night snack lemon pepper wings blue cheese',
+			MOCK_OPENAI_NEUTRAL_REPLY:
+				options.neutralReply ??
+				"I don't know your usual QA movie night snack.",
+			MOCK_OPENAI_PORT: '0',
+			MOCK_OPENAI_READY_PATH,
+			MOCK_OPENAI_REQUEST_LOG_PATH,
+			MOCK_OPENAI_SUCCESS_REPLY:
+				options.successReply ?? 'You usually want lemon pepper wings.',
+		},
+		stdio: 'pipe',
+	});
+
+	child.stdout.setEncoding('utf8');
+	child.stderr.setEncoding('utf8');
+
+	await waitForFile(MOCK_OPENAI_READY_PATH, 10000);
+	return {
+		child,
+		info: readJson(MOCK_OPENAI_READY_PATH),
+	};
+}
+
+export async function stopChildProcess(child) {
+	if (!child || child.killed) {
+		return;
+	}
+
+	child.kill('SIGTERM');
+	await new Promise((resolve) => {
+		child.once('exit', () => resolve(undefined));
+		setTimeout(() => resolve(undefined), 5000);
+	});
+}
+
+export function buildMemoryPluginConfig(extraEnv = {}) {
+	return {
+		args: [MEMPALACE_MCP_SHIM_PATH],
+		command: process.execPath,
+		defaultResultLimit: 8,
+		defaultTokenBudget: 1200,
+		env: {
+			MEMPALACE_MCP_SHIM_STATE_PATH,
+			...extraEnv,
+		},
+		timeoutMs: 5000,
+		transport: 'stdio',
+	};
+}
+
+export function extractAgentReplyText(output) {
+	if (typeof output === 'string') {
+		return output;
+	}
+	if (!output || typeof output !== 'object') {
+		return '';
+	}
+
+	const candidates = [
+		output.finalAssistantVisibleText,
+		output.finalAssistantRawText,
+		output.reply,
+		output.replyText,
+		output.text,
+		output.message,
+		output.output_text,
+		output.content,
+		output.payloads?.[0]?.text,
+		output.result?.text,
+		output.result?.message,
+		output.result?.content,
+	];
+	for (const candidate of candidates) {
+		if (typeof candidate === 'string' && candidate.trim().length > 0) {
+			return candidate;
+		}
+	}
+
+	return '';
 }

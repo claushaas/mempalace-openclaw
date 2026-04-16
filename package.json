@@ -21,7 +21,13 @@
 		"host-real:memory-mempalace": "node ./scripts/host-real/memory-mempalace.mjs",
 		"host-real:mempalace-ingest-hooks": "node ./scripts/host-real/mempalace-ingest-hooks.mjs",
 		"host-real:context-slot": "node ./scripts/host-real/context-slot.mjs",
+		"host-real:context-engine-mempalace": "node ./scripts/host-real/context-engine-mempalace.mjs",
 		"host-real:active-memory": "node ./scripts/host-real/active-memory.mjs",
+		"host-real:smoke:memory-only": "node ./scripts/host-real/smoke-memory-only.mjs",
+		"host-real:smoke:recommended": "node ./scripts/host-real/smoke-recommended.mjs",
+		"host-real:smoke:full": "node ./scripts/host-real/smoke-full.mjs",
+		"host-real:recommended-recall": "node ./scripts/host-real/recommended-recall.mjs",
+		"host-real:full-recall": "node ./scripts/host-real/full-recall.mjs",
 		"host-real:all": "node ./scripts/host-real/all.mjs",
 		"update": "pnpm dlx npm-check-updates -i"
 	},

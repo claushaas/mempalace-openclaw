@@ -39,8 +39,8 @@ O que já foi validado:
 
 O que ainda não foi provado:
 
-- blocking pre-reply recall ponta a ponta com MemPalace real;
-- cooperação operacional completa com `memory-mempalace` e `claw-context-mempalace`.
+- um pass próprio e observável de `active-memory` antes da resposta principal com `memory_search` + `memory_get` registrados em transcript;
+- cooperação operacional completa com `memory-mempalace` e `claw-context-mempalace` sem depender apenas do context engine.
 
 ## Enablement
 
@@ -50,30 +50,37 @@ Enablement alvo:
 - usar o modo `full` com `memory-mempalace` e `claw-context-mempalace`;
 - validar o comportamento por harness observável, não apenas por bootstrap.
 
-Nesta etapa, o enablement documentado é real no nível de surface e bootstrap, mas não no nível de recall ponta a ponta.
+Estado atual do enablement em `openclaw@2026.4.14`:
+
+- `plugins.entries.active-memory.enabled = true` funciona;
+- `plugins.entries.active-memory.config.enabled = true` funciona;
+- o modo `full` sobe com `memory-mempalace` + `claw-context-mempalace` + `active-memory`;
+- o harness `pnpm host-real:smoke:full` passa;
+- o harness `pnpm host-real:full-recall` retorna `partially_validated`, porque a resposta correta ainda não veio acompanhada de transcript observável do pass próprio de Active Memory.
 
 ## Interação com Memory Runtime
 
 - Active Memory deve consultar o runtime `memory-mempalace` para recuperar memória relevante.
 - o runtime continua sendo a fronteira oficial com o MemPalace.
+- o context engine já cobre o caminho canônico de recall automático em `recommended`.
 - Active Memory não deve manter uma verdade paralela fora do backend durável.
 
 ## Interação com Context Engine
 
-- Active Memory é preferido para recall automático forte.
-- `claw-context-mempalace` é o caminho mínimo alternativo para o modo `recommended`.
-- em `full`, o context engine continua responsável por budget, pruning e formato de injeção.
+- Active Memory é preferido para um pass próprio de recall automático forte quando isso estiver observável.
+- `claw-context-mempalace` já é o caminho canônico validado para o modo `recommended`.
+- em `full`, o context engine continua responsável por budget, pruning e formato de injeção, mesmo quando Active Memory estiver habilitado.
 
 ## Fallbacks e Degradação
 
 - se Active Memory não estiver operacional em uma versão-alvo, o modo `recommended` continua sendo o baseline aceitável para recall automático via context engine.
 - a degradação deve ser explícita em compatibilidade e smoke tests.
-- nenhum documento deve afirmar recall automático forte em `full` sem harness executado.
+- nenhum documento deve afirmar `full = validated` sem transcript ou evidência equivalente do pass pré-resposta próprio.
 
 ## Limitações da Versão-Alvo
 
-- em `2026.4.14`, a surface existe e aceita configuração.
-- o comportamento de blocking pre-reply recall ainda não foi observado ponta a ponta com os plugins finais.
+- em `2026.4.14`, a surface existe, aceita configuração e inicializa no modo `full`.
+- o harness `pnpm host-real:full-recall` devolve resposta final correta, mas a evidência disponível continua vindo do `claw-context-mempalace`; o transcript esperado de `active-memory` com `memory_search` + `memory_get` antes da resposta principal não apareceu.
 - por isso, o status correto permanece `partially_validated`.
 
 ## v1 obrigatório
@@ -81,12 +88,13 @@ Nesta etapa, o enablement documentado é real no nível de surface e bootstrap, 
 - documentação explícita do seam `plugins.entries.active-memory`.
 - classificação correta do estado atual como `partially_validated`.
 - distinção entre surface validada e recall ainda não provado.
+- referência aos harnesses `pnpm host-real:smoke:full` e `pnpm host-real:full-recall`.
 
 ## recomendado
 
 - modo `full` documentado.
 - cooperação planejada com runtime e context engine.
-- harness futuro para prova observável de recall automático forte.
+- melhoria do harness para capturar transcript do pass próprio de Active Memory assim que o host expuser essa trilha de observabilidade.
 
 ## v2
 

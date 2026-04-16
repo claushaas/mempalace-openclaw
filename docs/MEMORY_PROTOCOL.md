@@ -4,7 +4,7 @@
 
 Este documento define a linguagem comum entre os packages planejados do repositório.
 
-Ele descreve contratos lógicos, não schemas TypeScript finais. A implementação concreta desses contratos ficará para `packages/shared` nas próximas etapas, mantendo aderência a [SPEC.md](SPEC.md) e [REASONING.md](REASONING.md).
+Ele descreve contratos lógicos e referencia a implementação concreta já existente em `packages/shared`, mantendo aderência a [SPEC.md](SPEC.md) e [REASONING.md](REASONING.md).
 
 ## Entidades do Protocolo
 
@@ -134,7 +134,7 @@ Regra:
 
 - o protocolo deve permanecer pequeno e auditável em v1.
 - extensões futuras devem ser adicionadas por compatibilidade incremental, não por reescrita do contrato base.
-- esta etapa não congela a forma final dos tipos TypeScript; congela a semântica lógica que `packages/shared` precisa implementar.
+- o documento continua congelando a semântica lógica; os schemas TypeScript canônicos já vivem em `packages/shared`.
 
 ## v1 obrigatório
 

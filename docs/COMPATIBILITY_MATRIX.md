@@ -43,7 +43,7 @@ Documentos operacionais relacionados:
 
 | OpenClaw version | Status | Date | Install method | Notes |
 |---|---|---|---|---|
-| `2026.4.14` | `partially_validated` | `2026-04-15` | npm package `openclaw` | versão canônica; seams de manifest, memory slot e context engine validados; plugin final `memory-mempalace` validado com MCP shim local; Active Memory ainda parcialmente validado |
+| `2026.4.14` | `partially_validated` | `2026-04-15` | npm package `openclaw` | versão canônica; plugins finais `memory-mempalace` e `claw-context-mempalace` validados; `recommended` com recall observável validado; `full` segue parcialmente validado por falta de evidência do pass próprio de Active Memory |
 
 ---
 
@@ -70,9 +70,10 @@ Documentos operacionais relacionados:
 | final memory runtime plugin loading | yes | `validated` | `pnpm host-real:memory-mempalace` | o host carrega `memory-mempalace`, aceita a config MCP stdio, marca `memorySlotSelected: true` e sobe o gateway com o package final ativo; ver também [MEMORY_RUNTIME.md](MEMORY_RUNTIME.md) |
 | hook pack loading + spool ingest path | yes | `validated` | `pnpm host-real:mempalace-ingest-hooks` | o host instala `mempalace-ingest-hooks`, descobre os hooks, escreve spool em evento real, processa o spool, promove memória no backend smoke e deixa o resultado consultável pelo runtime; ver também [HOOKS.md](HOOKS.md) |
 | context engine slot loading | yes | `validated` | `pnpm host-real:context-slot` | o host carrega `probe-context-engine-slot`, aceita `plugins.slots.contextEngine` e registra o engine em runtime real; ver também [CONTEXT_ENGINE.md](CONTEXT_ENGINE.md) |
+| final context engine plugin loading | yes | `validated` | `pnpm host-real:context-engine-mempalace` | o host carrega `claw-context-mempalace`, aceita a config final, registra o engine real e sobe o gateway com o package final ativo |
 | Active Memory seam discovery | yes | `partially_validated` | `pnpm host-real:active-memory` | a chave `plugins.entries.active-memory` é aceita e o plugin bundled existe na versão-alvo; o blocking pre-reply path ainda não foi observado ponta a ponta; ver também [ACTIVE_MEMORY.md](ACTIVE_MEMORY.md) |
-| recommended mode automatic recall | yes | `pending` | planned in [TEST_STRATEGY.md](TEST_STRATEGY.md) | depende dos plugins reais `memory-mempalace` + `claw-context-mempalace` e da prova observável definida na estratégia de testes |
-| full mode automatic recall | conditional | `pending` | planned in [TEST_STRATEGY.md](TEST_STRATEGY.md) | depende dos plugins reais e da conclusão do path Active Memory |
+| recommended mode automatic recall | yes | `validated` | `pnpm host-real:recommended-recall` | `claw-context-mempalace` executa `assemble`, usa `manager.search` + `manager.readFile`, gera `MemPalace Recall Context` e a resposta final contém o needle sem skill explícita |
+| full mode automatic recall | conditional | `partially_validated` | `pnpm host-real:full-recall` | o modo `full` sobe e responde corretamente, mas o transcript observável do pass próprio de `active-memory` com `memory_search` + `memory_get` antes da resposta principal não apareceu |
 
 ---
 
@@ -82,27 +83,27 @@ Documentos operacionais relacionados:
 
 | Item | Status | Notes |
 |---|---|---|
-| config example exists | `validated` | `examples/openclaw.config.memory-only.json` existe e é válido em JSON |
-| smoke test in host real | `pending` | a Etapa 0A valida apenas o seam; smoke test do produto entra depois |
-| limitations documented | `validated` | nesta etapa só existe prova do slot com probe, não do runtime MemPalace final |
+| config example exists | `validated` | `examples/openclaw.config.memory-only.json` existe, é válido em JSON e usa a surface final `plugins.entries.memory-mempalace` |
+| smoke test in host real | `validated` | `pnpm host-real:smoke:memory-only` prova boot do runtime final de memória e comportamento degradado sem context engine |
+| limitations documented | `validated` | `memory-only` não é o caminho canônico para recall automático forte |
 
 ### 6.2 `recommended`
 
 | Item | Status | Notes |
 |---|---|---|
-| config example exists | `validated` | `examples/openclaw.config.recommended.json` existe e é válido em JSON |
-| smoke test in host real | `pending` | depende dos packages reais e do harness de recall automático |
-| observable automatic recall proof | `pending` | ainda não existe porque os plugins finais não foram implementados |
-| limitations documented | `validated` | o seam do context engine está validado; o comportamento de recall automático continua pendente |
+| config example exists | `validated` | `examples/openclaw.config.recommended.json` existe, é válido em JSON e usa as surfaces finais `memory-mempalace` + `claw-context-mempalace` |
+| smoke test in host real | `validated` | `pnpm host-real:smoke:recommended` prova boot conjunto do runtime final de memória com o context engine final |
+| observable automatic recall proof | `validated` | `pnpm host-real:recommended-recall` prova assemble real, retrieval real, bloco de contexto e resposta final correta sem skill explícita |
+| limitations documented | `validated` | o engine usa o seam público de public artifacts como primeira tentativa e cai para o mirror em disco do runtime quando o ambiente linkado do host não reflete o provider registrado |
 
 ### 6.3 `full`
 
 | Item | Status | Notes |
 |---|---|---|
-| config example exists | `validated` | `examples/openclaw.config.full.json` existe e é válido em JSON |
-| smoke test in host real | `pending` | depende dos plugins finais e de Active Memory operacional |
-| observable automatic recall proof | `pending` | ainda não existe |
-| limitations documented | `validated` | Active Memory está apenas parcialmente validado nesta versão-alvo |
+| config example exists | `validated` | `examples/openclaw.config.full.json` existe, é válido em JSON e usa `plugins.entries.active-memory` em vez do shape legado `agents.defaults.activeMemory` |
+| smoke test in host real | `validated` | `pnpm host-real:smoke:full` prova bootstrap do conjunto `memory-mempalace` + `claw-context-mempalace` + `active-memory` |
+| observable automatic recall proof | `partially_validated` | `pnpm host-real:full-recall` produz resposta correta, mas sem transcript observável do pass próprio de Active Memory |
+| limitations documented | `validated` | Active Memory continua apenas parcialmente validado nesta versão-alvo |
 
 ---
 
@@ -178,6 +179,29 @@ Documentos operacionais relacionados:
   - promoção do conteúdo no shim MCP com estado persistido;
   - consulta bem-sucedida do conteúdo pelo runtime de memória usando o mesmo backend smoke.
 
+### 7.8 Package final `claw-context-mempalace`
+
+- comando: `pnpm host-real:context-engine-mempalace`
+- relatório: `.tmp/host-real-results/host-real-context-engine-mempalace.json`
+- prova produzida:
+  - instalação linkada do package final `packages/context-engine-mempalace`;
+  - `plugins inspect claw-context-mempalace --json` confirmando registro do engine;
+  - bootstrap do gateway com `claw-context-mempalace` listado entre os plugins ativos;
+  - evidência JSONL do package final em `.tmp/host-real-results/claw-context-mempalace.jsonl`.
+
+### 7.9 Modos operacionais reais
+
+- `pnpm host-real:smoke:memory-only`
+  - prova boot do modo `memory-only` com o runtime final de memória.
+- `pnpm host-real:smoke:recommended`
+  - prova boot do modo `recommended` com os packages finais.
+- `pnpm host-real:recommended-recall`
+  - prova canônica de recall automático observável do repositório.
+- `pnpm host-real:smoke:full`
+  - prova bootstrap do modo `full`.
+- `pnpm host-real:full-recall`
+  - best-effort real do modo `full`, mantendo `partially_validated` quando o pass próprio de Active Memory não fica observável.
+
 ---
 
 ## 8. Limitações Conhecidas Após a Etapa 0A
@@ -185,8 +209,9 @@ Documentos operacionais relacionados:
 - Os probes desta etapa **não** implementam `memory-mempalace` nem `claw-context-mempalace`.
 - `validated` nesta etapa prova o seam do host, não a integração com MemPalace.
 - Em `openclaw@2026.4.14`, selecionar um memory slot externo desativa `memory-core`. Como `memory-core` é dono da árvore CLI `openclaw memory`, essa árvore não é um harness válido para plugins externos nesta etapa.
-- O seam de Active Memory está **disponível e configurável** em `2026.4.14`, mas o blocking pre-reply recall ainda não foi provado com MemPalace nem com os plugins finais.
-- A prova de recall automático continua bloqueada até que o runtime real e o harness canônico existam; o desenho alvo desse harness está em [TEST_STRATEGY.md](TEST_STRATEGY.md), e os contratos dependentes estão em [MEMORY_RUNTIME.md](MEMORY_RUNTIME.md), [CONTEXT_ENGINE.md](CONTEXT_ENGINE.md) e [ACTIVE_MEMORY.md](ACTIVE_MEMORY.md).
+- O seam de Active Memory está **disponível e configurável** em `2026.4.14`, mas o pass próprio pré-resposta ainda não foi provado com transcript observável.
+- O `recommended` já é o baseline operacional do projeto para recall automático forte.
+- Em ambiente host-real linkado, `listActiveMemoryPublicArtifacts(...)` pode não refletir o provider registrado do plugin final; o `claw-context-mempalace` usa esse seam primeiro e cai para o mirror público em disco do `memory-mempalace` quando necessário.
 
 ---
 

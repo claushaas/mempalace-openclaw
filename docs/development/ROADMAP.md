@@ -757,6 +757,20 @@ Implementar a trilha mínima de captura assíncrona e desacoplada do loop princi
 
 Implementar o package recomendado para injeção disciplinada de memória em contexto e deixar o caminho de Active Memory corretamente suportado e documentado.
 
+### Status
+
+Concluída.
+
+Resultado materializado desta etapa:
+
+- `packages/context-engine-mempalace` implementado;
+- `pnpm host-real:context-engine-mempalace` validado;
+- `pnpm host-real:smoke:memory-only` validado;
+- `pnpm host-real:smoke:recommended` validado;
+- `pnpm host-real:recommended-recall` validado como prova canônica de recall automático;
+- `pnpm host-real:smoke:full` validado;
+- `pnpm host-real:full-recall` classificado como `partially_validated`, mantendo o status preciso do Active Memory em `openclaw@2026.4.14`.
+
 ### Dependências
 
 - Etapas 2, 3 e 4 concluídas
@@ -1205,7 +1219,7 @@ Fechar o ciclo de execução com scripts operacionais, validação automatizada 
 | 2 | `packages/shared` | concluída | contratos e schemas canônicos |
 | 3 | `packages/memory-mempalace` | concluída | runtime replacement funcional |
 | 4 | Hooks + spool + ingest básico | concluída | hook pack real, spool local e ingestão ponta a ponta |
-| 5 | Context engine + Active Memory | não iniciada | injeção disciplinada de contexto e prova de recall |
+| 5 | Context engine + Active Memory | concluída | injeção disciplinada de contexto, smoke tests por modo e prova canônica de recall |
 | 6 | Sync daemon + skill + infra | não iniciada | ingestão contínua operacional |
 | 7 | Robustez, ranking e failure modes | não iniciada | qualidade e resiliência |
 | 8 | Recursos avançados V2 | não iniciada | KG, pinned memory, diaries |

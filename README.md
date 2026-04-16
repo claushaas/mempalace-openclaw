@@ -60,7 +60,7 @@ Separação de responsabilidades:
 | Package | Responsabilidade | Status atual |
 | --- | --- | --- |
 | `memory-mempalace` | plugin real de memory slot e adapter entre OpenClaw e MemPalace | implementado |
-| `context-engine-mempalace` | plugin real de context engine para budget, pruning e injeção com provenance | ainda não implementado |
+| `context-engine-mempalace` | plugin real de context engine para budget, pruning e injeção com provenance | implementado |
 | `shared` | tipos, schemas e contratos comuns do runtime, hooks e sync | implementado |
 | `mempalace-ingest-hooks` | hook pack real para captura, spool local e ingestão básica não bloqueante | implementado |
 | `sync-daemon` | ingestão operacional, `sync.db`, spool e sincronização de fontes externas | ainda não implementado |
@@ -100,7 +100,7 @@ Scripts da raiz:
 - `pnpm dev`
 - `pnpm validate-config`
 
-O bootstrap do monorepo já está concluído. Nesta altura do roadmap, `shared` e `memory-mempalace` já existem; `context-engine-mempalace`, `sync-daemon` e `skill-mempalace-sync` continuam pendentes.
+O bootstrap do monorepo já está concluído. Nesta altura do roadmap, `shared`, `memory-mempalace`, `context-engine-mempalace` e `mempalace-ingest-hooks` já existem; `sync-daemon` e `skill-mempalace-sync` continuam pendentes.
 
 ## Validação Host-Real
 
@@ -114,7 +114,13 @@ Scripts disponíveis:
 - `pnpm host-real:memory-mempalace`
 - `pnpm host-real:mempalace-ingest-hooks`
 - `pnpm host-real:context-slot`
+- `pnpm host-real:context-engine-mempalace`
 - `pnpm host-real:active-memory`
+- `pnpm host-real:smoke:memory-only`
+- `pnpm host-real:smoke:recommended`
+- `pnpm host-real:smoke:full`
+- `pnpm host-real:recommended-recall`
+- `pnpm host-real:full-recall`
 - `pnpm host-real:all`
 
 Artefatos relevantes:
@@ -134,7 +140,7 @@ O estado detalhado da compatibilidade está em [docs/COMPATIBILITY_MATRIX.md](do
 
 ## Estado Atual
 
-O repositório já tem bootstrap do monorepo e validação host-real inicial do seam com OpenClaw.
+O repositório já tem bootstrap do monorepo, runtime de memória funcional, hook pack de ingestão básica e context engine funcional com prova observável de recall no modo `recommended`.
 
 O que já está fechado:
 
@@ -144,13 +150,23 @@ O que já está fechado:
 - plugin final `memory-mempalace` implementado e validado em host real com MCP shim local
 - hook pack `mempalace-ingest-hooks` implementado e validado em host real com spool local e processador embutido
 - slot de context engine validado com probe
+- plugin final `claw-context-mempalace` implementado e validado em host real
+- modo `memory-only` com config real, smoke test e limitação documentada
+- modo `recommended` com config real, smoke test e prova observável de recall automático sem skill explícita
+- modo `full` com config real, smoke test e classificação precisa como `partially_validated`
 - caminho de configuração de Active Memory investigado e classificado
 - contratos operacionais documentados por subsistema
 - package `@mempalace-openclaw/shared` com schemas, tipos, erros e utilidades canônicas
 
 O que ainda não existe:
 
-- `packages/context-engine-mempalace`
 - `packages/sync-daemon`
 - `packages/skill-mempalace-sync`
-- prova observável de recall automático com MemPalace real
+- validação positiva do pass próprio de Active Memory antes da resposta principal em `openclaw@2026.4.14`
+- sincronização contínua de fontes externas via `sync-daemon`
+
+Limites relevantes já observados:
+
+- o harness canônico de aceite da Etapa 5 é `pnpm host-real:recommended-recall`;
+- no ambiente linkado do host, o seam público `listActiveMemoryPublicArtifacts(...)` pode não refletir o provider do memory slot final, então o `claw-context-mempalace` usa esse seam como primeira tentativa e cai para o mirror público em disco do `memory-mempalace` quando necessário;
+- em `openclaw@2026.4.14`, o modo `full` inicializa corretamente com `active-memory`, mas o pass pré-resposta próprio do Active Memory ainda não ficou observável com `memory_search` + `memory_get` em transcript. Por isso o status correto continua `partially_validated`.

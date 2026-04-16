@@ -1,0 +1,32 @@
+{
+	"configSchema": {
+		"additionalProperties": false,
+		"properties": {
+			"includeMemoryPromptAddition": {
+				"type": "boolean"
+			},
+			"maxArtifactLines": {
+				"minimum": 1,
+				"type": "integer"
+			},
+			"maxContextTokens": {
+				"minimum": 1,
+				"type": "integer"
+			},
+			"maxEntries": {
+				"minimum": 1,
+				"type": "integer"
+			},
+			"minScore": {
+				"minimum": 0,
+				"type": "number"
+			}
+		},
+		"type": "object"
+	},
+	"description": "MemPalace-backed context engine for disciplined pre-reply recall in OpenClaw.",
+	"id": "claw-context-mempalace",
+	"kind": "context-engine",
+	"name": "MemPalace Context Engine",
+	"version": "0.0.0"
+}

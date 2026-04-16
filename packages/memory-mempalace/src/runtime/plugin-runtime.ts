@@ -9,6 +9,7 @@ import {
 	type ResolvedMemoryMempalacePluginConfig,
 } from '../config.js';
 import { appendHostRealEvidence } from './evidence.js';
+import type { MemoryPublicArtifactStore } from './public-artifacts.js';
 import { MemPalaceMemorySearchManager } from './search-manager.js';
 import { MemoryRuntimeService } from './service.js';
 
@@ -23,6 +24,10 @@ function getPluginConfig(cfg: OpenClawConfig): unknown {
 
 export class MemoryPluginRuntimeAdapter implements MemoryPluginRuntime {
 	private readonly managers = new Map<string, ManagerRecord>();
+
+	public constructor(
+		private readonly artifactStore: MemoryPublicArtifactStore,
+	) {}
 
 	public async closeAllMemorySearchManagers(): Promise<void> {
 		appendHostRealEvidence('capability.runtime.closeAllMemorySearchManagers');
@@ -73,7 +78,11 @@ export class MemoryPluginRuntimeAdapter implements MemoryPluginRuntime {
 
 		try {
 			const client = new McpStdioMemPalaceClient(config);
-			const service = new MemoryRuntimeService(client);
+			const service = new MemoryRuntimeService(client, {
+				onArtifactRecorded: (artifact) => {
+					this.artifactStore.writeArtifact(artifact);
+				},
+			});
 			const initialStatus = await service.status();
 			const manager = new MemPalaceMemorySearchManager(service, initialStatus);
 			this.managers.set(key, {
@@ -102,7 +111,15 @@ export class MemoryPluginRuntimeAdapter implements MemoryPluginRuntime {
 }
 
 export function createMemoryRuntimeAdapter(): MemoryPluginRuntimeAdapter {
-	return new MemoryPluginRuntimeAdapter();
+	throw new Error(
+		'createMemoryRuntimeAdapter now requires a MemoryPublicArtifactStore.',
+	);
+}
+
+export function createMemoryRuntimeAdapterWithArtifactStore(
+	artifactStore: MemoryPublicArtifactStore,
+): MemoryPluginRuntimeAdapter {
+	return new MemoryPluginRuntimeAdapter(artifactStore);
 }
 
 export function createUnavailableRuntimeError(

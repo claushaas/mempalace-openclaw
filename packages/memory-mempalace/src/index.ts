@@ -2,9 +2,8 @@ import { definePluginEntry } from 'openclaw/plugin-sdk/plugin-entry';
 
 import { memoryMempalacePluginConfigSchema } from './config.js';
 import { appendHostRealEvidence } from './runtime/evidence.js';
-import { createMemoryRuntimeAdapter } from './runtime/plugin-runtime.js';
-
-const runtime = createMemoryRuntimeAdapter();
+import { createMemoryRuntimeAdapterWithArtifactStore } from './runtime/plugin-runtime.js';
+import { MemoryPublicArtifactStore } from './runtime/public-artifacts.js';
 
 export default definePluginEntry({
 	configSchema: memoryMempalacePluginConfigSchema,
@@ -17,6 +16,10 @@ export default definePluginEntry({
 		appendHostRealEvidence('register', {
 			registrationMode: api.registrationMode,
 		});
+		const artifactStore = new MemoryPublicArtifactStore(
+			api.runtime.state.resolveStateDir(),
+		);
+		const runtime = createMemoryRuntimeAdapterWithArtifactStore(artifactStore);
 
 		api.registerMemoryCapability({
 			promptBuilder() {
@@ -25,6 +28,16 @@ export default definePluginEntry({
 					'MemPalace-backed memory runtime is active.',
 					'Use the memory runtime as the durable source of truth for long-term recall.',
 				];
+			},
+			publicArtifacts: {
+				async listArtifacts(params) {
+					const artifacts = await artifactStore.listArtifacts(params);
+					appendHostRealEvidence('capability.publicArtifacts.listArtifacts', {
+						count: artifacts.length,
+						relativePaths: artifacts.map((artifact) => artifact.relativePath),
+					});
+					return artifacts;
+				},
 			},
 			runtime,
 		});
