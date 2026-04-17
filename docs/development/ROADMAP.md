@@ -1075,6 +1075,13 @@ Introduzir extensões avançadas sem contaminar o contrato v1 do runtime.
 
 Fechar o ciclo de execução com scripts operacionais, validação automatizada e critérios de pronto para uso e manutenção.
 
+Status atual após implementação:
+
+- `scripts/setup.sh`, `scripts/dev.sh` e `scripts/validate-config.sh` entregues;
+- CI base em GitHub Actions para `push` e `pull_request`;
+- host-real em workflow manual gated;
+- readiness documentada no `README.md`.
+
 ### Dependências
 
 - Etapas 0 a 8 concluídas em nível compatível com o corte planejado
@@ -1104,10 +1111,12 @@ Fechar o ciclo de execução com scripts operacionais, validação automatizada 
    - falhar com mensagens objetivas
 4. CI mínimo:
    - `pnpm install --frozen-lockfile`
+   - `pnpm lint:check`
    - `pnpm typecheck`
    - `pnpm test`
    - `pnpm build`
-   - smoke tests de config/examples
+   - `pnpm validate-config`
+   - `pnpm smoke:examples`
    - suíte host-real executável sob gating explícito
 5. Expandir `README.md` com:
    - quickstart local
@@ -1124,6 +1133,7 @@ Fechar o ciclo de execução com scripts operacionais, validação automatizada 
 - CI cobre build, testes e exemplos.
 - `README.md` não contradiz nenhum doc técnico.
 - Existe caminho explícito para rodar smoke tests e host-real tests.
+- A suíte host-real em CI fica manualmente gated e publica artifacts observáveis.
 
 ### Riscos Principais
 
@@ -1240,7 +1250,7 @@ Fechar o ciclo de execução com scripts operacionais, validação automatizada 
 | 6 | Sync daemon + skill + infra | concluída | `sync-daemon`, `sync.db`, comandos públicos, cutover do spool e validação host-real |
 | 7 | Robustez, ranking e failure modes | concluída | ranking v2, cache observável, refresh incremental, diagnósticos e mitigação dos failure modes |
 | 8 | Recursos avançados V2 | concluída | KG opcional, pinned memory, query expansion, diaries e compaction transitória |
-| 9 | Scripts, CI e readiness | não iniciada | operação e manutenção previsíveis |
+| 9 | Scripts, CI e readiness | concluída | operação e manutenção previsíveis |
 
 ---
 

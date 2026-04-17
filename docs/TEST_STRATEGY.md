@@ -76,6 +76,21 @@ Cobrem:
 
 Os limites atualmente observados do host-alvo estão em [COMPATIBILITY_MATRIX.md](COMPATIBILITY_MATRIX.md) e [ACTIVE_MEMORY.md](ACTIVE_MEMORY.md).
 
+### 2.5 CI e Gating
+
+Cobrem:
+
+- CI base automática em `push` e `pull_request`;
+- validação leve de examples/configs com `pnpm smoke:examples`;
+- suíte host-real manual gated em workflow separado;
+- publicação dos artifacts de `.tmp/host-real-results/` quando a suíte host-real rodar em CI.
+
+Decisão operacional da Etapa 9:
+
+- CI base roda em runner Linux;
+- host-real em CI roda em `macos-14`;
+- host-real não é executado automaticamente em toda mudança.
+
 ---
 
 ## 3. Harnesses Host-Real da Etapa 0A
@@ -95,6 +110,14 @@ Todos usam:
 - ambiente isolado em `.tmp/openclaw-host/`
 - relatórios temporários em `.tmp/host-real-results/`
 - probes rastreados em `fixtures/host-real/`
+
+Separação explícita da Etapa 9:
+
+- `pnpm smoke:examples`
+  - valida JSON, `SourceConfigSchema` e `openclaw config validate --json` para os examples em ambientes temporários isolados;
+  - não sobe gateway e não conta como prova host-real.
+- `pnpm host-real:*`
+  - continuam sendo a prova operacional do host e dos modos reais.
 
 ### 3.1 `pnpm host-real:bootstrap`
 

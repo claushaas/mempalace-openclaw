@@ -94,18 +94,40 @@ Pré-requisitos:
 - `Node.js v24.13.1`
 - `pnpm 10.33.0`
 
+Quickstart:
+
+- `pnpm setup`
+- `pnpm build`
+- `pnpm test`
+- `pnpm smoke:examples`
+
 Scripts da raiz:
 
+- `pnpm setup`
 - `pnpm build`
 - `pnpm test`
 - `pnpm lint`
+- `pnpm lint:check`
+- `pnpm lint:fix`
 - `pnpm typecheck`
 - `pnpm dev`
 - `pnpm validate-config`
+- `pnpm smoke:examples`
 - `pnpm diagnostic:stage7`
 - `pnpm benchmark:stage7`
 
 O bootstrap do monorepo já está concluído. Nesta altura do roadmap, `shared`, `memory-mempalace`, `context-engine-mempalace`, `mempalace-ingest-hooks`, `sync-daemon` e `skill-mempalace-sync` já existem.
+
+## Development Workflow
+
+- `pnpm dev`
+  - watch dos builds de `shared`, `memory-mempalace`, `context-engine-mempalace`, `sync-daemon` e `skill-mempalace-sync`
+- `pnpm dev tests`
+  - `vitest --watch`
+- `pnpm dev all`
+  - watch dos packages e dos testes em paralelo
+- `pnpm dev daemon -- run --once`
+  - watch do binário do `sync-daemon` com repasse de argumentos
 
 ## Validação Host-Real
 
@@ -149,6 +171,35 @@ Limite importante:
 
 O estado detalhado da compatibilidade está em [docs/COMPATIBILITY_MATRIX.md](docs/COMPATIBILITY_MATRIX.md).
 
+## CI and Host-Real Validation
+
+CI automática:
+
+- workflow `CI`
+- roda em `push` e `pull_request`
+- executa:
+  - `pnpm install --frozen-lockfile`
+  - `pnpm lint:check`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
+  - `pnpm validate-config`
+  - `pnpm smoke:examples`
+
+Host-real gated:
+
+- workflow `Host-Real`
+- runner alvo: `macos-14`
+- gatilho: `workflow_dispatch`
+- suites disponíveis:
+  - `smoke`
+  - `recommended-recall`
+  - `advanced-recall`
+  - `sync-stage6`
+  - `full-recall`
+
+`smoke:examples` é propositalmente leve e não substitui os harnesses `host-real:*`.
+
 ## Estado Atual
 
 O repositório já tem bootstrap do monorepo, runtime de memória funcional, hook pack enqueue-only, `sync-daemon` operacional, skill operacional, context engine funcional com prova observável de recall no modo `recommended`, endurecimento local de ranking/cache/failure modes da Etapa 7 e extensões opcionais de V2 da Etapa 8 preservando o contrato base do runtime.
@@ -175,12 +226,22 @@ O que já está fechado:
 - flags opcionais de V2 em `memory-mempalace` e `claw-context-mempalace`
 - `Knowledge Graph` opcional por MCP, com fallback limpo quando as tools não existem
 - `pinned memory`, `query expansion`, `agent diaries` e `compaction` transitória validados em `pnpm host-real:advanced-recall`
+- scripts operacionais `pnpm setup`, `pnpm dev`, `pnpm validate-config` e `pnpm smoke:examples`
+- workflow `CI` para checks base em `push`/`pull_request`
+- workflow `Host-Real` manual gated em `macos-14` com upload dos artifacts de `.tmp/host-real-results/`
 
 O que ainda não existe:
 
 - validação positiva do pass próprio de Active Memory antes da resposta principal em `openclaw@2026.4.14`
 - fontes `chat-export` no pipeline operacional do `sync-daemon`
-- CI/readiness final das etapas posteriores do roadmap
+
+## Readiness Checklist
+
+- `pnpm setup` prepara ambiente, instala dependências e valida configs
+- `pnpm test`, `pnpm typecheck` e `pnpm build` passam localmente
+- `pnpm smoke:examples` valida os examples e os source configs
+- `pnpm host-real:recommended-recall` continua sendo o caminho canônico de aceite host-real
+- o modo `full` continua corretamente classificado como `partially_validated`
 
 Limites relevantes já observados:
 

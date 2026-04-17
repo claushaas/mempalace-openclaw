@@ -1,0 +1,73 @@
+name: Host-Real
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Host-real suite to run
+        required: true
+        type: choice
+        options:
+          - smoke
+          - recommended-recall
+          - advanced-recall
+          - sync-stage6
+          - full-recall
+
+jobs:
+  host-real:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.13.1
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Run selected host-real suite
+        run: |
+          case "${{ inputs.suite }}" in
+            smoke)
+              pnpm host-real:smoke:memory-only
+              pnpm host-real:smoke:recommended
+              pnpm host-real:smoke:full
+              ;;
+            recommended-recall)
+              pnpm host-real:recommended-recall
+              ;;
+            advanced-recall)
+              pnpm host-real:advanced-recall
+              ;;
+            sync-stage6)
+              pnpm host-real:sync-stage6
+              ;;
+            full-recall)
+              pnpm host-real:full-recall
+              ;;
+            *)
+              echo "Unsupported suite: ${{ inputs.suite }}" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Upload host-real artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: host-real-results-${{ inputs.suite }}
+          path: .tmp/host-real-results
+          if-no-files-found: warn
