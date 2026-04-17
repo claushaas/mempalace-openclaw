@@ -22,6 +22,7 @@ O context engine não deve:
 - persistir memória durável;
 - executar ingestão;
 - substituir o runtime de memória.
+- compactar memória durável.
 
 ## Formato de Injeção
 
@@ -104,6 +105,24 @@ Ordem efetiva da implementação:
 - se o engine falhar, o erro é observável em evidência JSONL e a resposta degrada para o prompt base do host.
 - fallback não inventa contexto sem provenance.
 
+Extensões opcionais entregues na Etapa 8:
+
+- `agent diaries`
+  - `afterTurn()` grava entradas append-only por `agentId` no backend MemPalace;
+  - diaries ficam fora do retrieval geral por default;
+  - consulta de diary só acontece quando `advanced.agentDiaries = true` e o prompt é explicitamente sobre memória anterior ou quando o recall geral é fraco.
+- `compaction`
+  - config pública em `plugins.entries.claw-context-mempalace.config.compaction`;
+  - gera um bloco transitório `Compacted Recall Notes` quando há overflow de budget;
+  - preserva provenance mínima por item compactado;
+  - nunca toca artifacts duráveis no backend.
+
+Config pública opcional:
+
+- `compaction.enabled?: boolean`
+- `compaction.maxCompactedEntries?: number`
+- `compaction.overflowSummaryMaxChars?: number`
+
 ## v1 obrigatório
 
 - `plugins.slots.contextEngine = "claw-context-mempalace"`.
@@ -121,9 +140,8 @@ Ordem efetiva da implementação:
 
 ## v2
 
-- estratégias mais avançadas de chunk packing.
-- budget adaptativo por tipo de tarefa.
 - cooperação mais fina com Active Memory.
+- heurísticas mais específicas de relevância para diary por agente/subagente.
 - remoção do fallback de mirror se o seam público do host passar a ser estável para plugins linkados.
 
 ## não-objetivos

@@ -9,6 +9,23 @@ import { z } from 'zod';
 export const contextEngineMempalacePluginConfigJsonSchema = {
 	additionalProperties: false,
 	properties: {
+		compaction: {
+			additionalProperties: false,
+			properties: {
+				enabled: {
+					type: 'boolean',
+				},
+				maxCompactedEntries: {
+					minimum: 1,
+					type: 'integer',
+				},
+				overflowSummaryMaxChars: {
+					minimum: 1,
+					type: 'integer',
+				},
+			},
+			type: 'object',
+		},
 		includeMemoryPromptAddition: {
 			type: 'boolean',
 		},
@@ -34,6 +51,23 @@ export const contextEngineMempalacePluginConfigJsonSchema = {
 
 export const ContextEngineMempalacePluginConfigSchema = z
 	.object({
+		compaction: z
+			.object({
+				enabled: z.boolean().default(false),
+				maxCompactedEntries: z.number().int().positive().default(4),
+				overflowSummaryMaxChars: z.number().int().positive().default(320),
+			})
+			.strict()
+			.default(() =>
+				z
+					.object({
+						enabled: z.boolean().default(false),
+						maxCompactedEntries: z.number().int().positive().default(4),
+						overflowSummaryMaxChars: z.number().int().positive().default(320),
+					})
+					.strict()
+					.parse({}),
+			),
 		includeMemoryPromptAddition: z.boolean().default(true),
 		maxArtifactLines: z.number().int().positive().default(40),
 		maxContextTokens: z.number().int().positive().default(1200),

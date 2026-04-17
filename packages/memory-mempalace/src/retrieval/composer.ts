@@ -6,12 +6,16 @@ import {
 	parseWithSchema,
 } from '@mempalace-openclaw/shared';
 
-import { computeRankedScore, RANKING_PROFILE } from './ranking.js';
+import {
+	computeRankedScore,
+	DEFAULT_RANKING_PROFILE,
+	type RankingProfile,
+} from './ranking.js';
 
 export type MemorySearchComposerDiagnostics = {
 	duplicateResultsCollapsed: number;
 	keywordFallbackApplied: boolean;
-	rankingProfile: typeof RANKING_PROFILE;
+	rankingProfile: RankingProfile;
 };
 
 export type MemorySearchComposition = {
@@ -65,19 +69,31 @@ function applyKeywordFallback(
 export function composeMemorySearchResults(
 	queryInput: MemorySearchQuery,
 	rawResults: MemorySearchResult[],
+	options: {
+		agentId?: string;
+		pinnedMemory?: boolean;
+		rankingProfile?: RankingProfile;
+	} = {},
 ): MemorySearchComposition {
 	const query = parseWithSchema(
 		MemorySearchQuerySchema,
 		queryInput,
 		'Invalid memory search query.',
 	);
+	const rankingProfile = options.rankingProfile ?? DEFAULT_RANKING_PROFILE;
 
 	const byArtifactId = new Map<string, MemorySearchResult>();
 	let artifactCollapses = 0;
 	for (const rawResult of rawResults) {
 		const result: MemorySearchResult = {
 			...rawResult,
-			score: computeRankedScore(query, rawResult),
+			score: computeRankedScore(query, rawResult, {
+				...(options.agentId ? { agentId: options.agentId } : {}),
+				...(options.pinnedMemory !== undefined
+					? { pinnedMemory: options.pinnedMemory }
+					: {}),
+				profile: rankingProfile,
+			}),
 		};
 
 		const currentArtifact = byArtifactId.get(result.artifactId);
@@ -131,7 +147,7 @@ export function composeMemorySearchResults(
 		diagnostics: {
 			duplicateResultsCollapsed: artifactCollapses + snippetCollapses,
 			keywordFallbackApplied: fallback.applied,
-			rankingProfile: RANKING_PROFILE,
+			rankingProfile,
 		},
 		results: fallback.results,
 	};

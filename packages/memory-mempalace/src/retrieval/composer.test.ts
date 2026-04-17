@@ -108,4 +108,43 @@ describe('retrieval composer', () => {
 
 		expect(decisionScore).toBeGreaterThan(conversationScore);
 	});
+
+	it('boosts pinned memory when ranking profile v3 is enabled', () => {
+		const pinnedResult: MemorySearchResult = {
+			artifactId: 'artifact-pinned',
+			classification: 'artifact',
+			metadata: {
+				pinned: true,
+				pinScope: 'global',
+			},
+			score: 0.19,
+			snippet: 'Pinned manual note about the QA movie night snack.',
+			source: 'manual-memory',
+			sourcePath: '/manual/pinned-snack.md',
+			sourceType: 'manual',
+			updatedAt: '2026-04-16T12:00:00Z',
+		};
+
+		const unpinnedScore = computeRankedScore(
+			{
+				query: 'movie night snack',
+			},
+			baseResults[2] as MemorySearchResult,
+			{
+				profile: 'v2',
+			},
+		);
+		const pinnedScore = computeRankedScore(
+			{
+				query: 'movie night snack',
+			},
+			pinnedResult,
+			{
+				pinnedMemory: true,
+				profile: 'v3',
+			},
+		);
+
+		expect(pinnedScore).toBeGreaterThan(unpinnedScore);
+	});
 });

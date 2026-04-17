@@ -107,6 +107,11 @@ describe('createContextEngine', () => {
 		const engine = createContextEngine(
 			createApi(),
 			{
+				compaction: {
+					enabled: false,
+					maxCompactedEntries: 4,
+					overflowSummaryMaxChars: 320,
+				},
 				includeMemoryPromptAddition: true,
 				maxArtifactLines: 40,
 				maxContextTokens: 1200,
@@ -164,6 +169,11 @@ describe('createContextEngine', () => {
 		const engine = createContextEngine(
 			createApi(),
 			{
+				compaction: {
+					enabled: false,
+					maxCompactedEntries: 4,
+					overflowSummaryMaxChars: 320,
+				},
 				includeMemoryPromptAddition: true,
 				maxArtifactLines: 40,
 				maxContextTokens: 1200,
@@ -251,6 +261,11 @@ describe('createContextEngine', () => {
 		const engine = createContextEngine(
 			api,
 			{
+				compaction: {
+					enabled: false,
+					maxCompactedEntries: 4,
+					overflowSummaryMaxChars: 320,
+				},
 				includeMemoryPromptAddition: true,
 				maxArtifactLines: 40,
 				maxContextTokens: 1200,
@@ -291,6 +306,11 @@ describe('createContextEngine', () => {
 		const engine = createContextEngine(
 			createApi(),
 			{
+				compaction: {
+					enabled: false,
+					maxCompactedEntries: 4,
+					overflowSummaryMaxChars: 320,
+				},
 				includeMemoryPromptAddition: true,
 				maxArtifactLines: 40,
 				maxContextTokens: 1200,
@@ -393,6 +413,11 @@ describe('createContextEngine', () => {
 		const engine = createContextEngine(
 			createApi(),
 			{
+				compaction: {
+					enabled: false,
+					maxCompactedEntries: 4,
+					overflowSummaryMaxChars: 320,
+				},
 				includeMemoryPromptAddition: true,
 				maxArtifactLines: 40,
 				maxContextTokens: 1200,

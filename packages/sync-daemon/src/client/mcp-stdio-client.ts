@@ -3,6 +3,7 @@ import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
 import {
 	ArtifactNotFoundError,
 	BackendUnavailableError,
+	type KnowledgeGraphUpsertInput,
 	type MemoryArtifact,
 	MemoryArtifactSchema,
 	type MemoryIndexRequest,
@@ -10,6 +11,7 @@ import {
 	type MemorySearchQuery,
 	type MemorySearchResult,
 	MemorySearchResultSchema,
+	type MemPalaceKnowledgeGraphClient,
 	type MemPalaceRefreshResult,
 	parseWithSchema,
 	type RuntimeHealth,
@@ -541,7 +543,9 @@ function createSearchFallbackArtifact(
 	throw new ArtifactNotFoundError(artifactId);
 }
 
-export class SyncDaemonMemPalaceClient {
+export class SyncDaemonMemPalaceClient
+	implements MemPalaceKnowledgeGraphClient
+{
 	private readonly connection: StdioMcpConnection;
 
 	public constructor(config: MemoryBackendConfig) {
@@ -550,6 +554,10 @@ export class SyncDaemonMemPalaceClient {
 
 	public async close(): Promise<void> {
 		await this.connection.close();
+	}
+
+	public async capabilities(): Promise<Set<string>> {
+		return this.connection.listTools();
 	}
 
 	public async get(artifactId: string): Promise<MemoryArtifact> {
@@ -690,5 +698,44 @@ export class SyncDaemonMemPalaceClient {
 				cause: error,
 			});
 		}
+	}
+
+	public async expandQuery(): Promise<never> {
+		throw new BackendUnavailableError(
+			'sync-daemon does not use graph query expansion.',
+		);
+	}
+
+	public async upsertGraph(
+		input: KnowledgeGraphUpsertInput,
+	): Promise<{ accepted: true; entityCount: number; relationCount: number }> {
+		const payload = await callTool(
+			this.connection,
+			'mempalace_graph_upsert',
+			input,
+		);
+		if (
+			payload &&
+			typeof payload === 'object' &&
+			(payload as { accepted?: unknown }).accepted === true
+		) {
+			return {
+				accepted: true,
+				entityCount:
+					typeof (payload as { entityCount?: unknown }).entityCount === 'number'
+						? (payload as { entityCount: number }).entityCount
+						: input.entities.length,
+				relationCount:
+					typeof (payload as { relationCount?: unknown }).relationCount ===
+					'number'
+						? (payload as { relationCount: number }).relationCount
+						: input.relations.length,
+			};
+		}
+		return {
+			accepted: true,
+			entityCount: input.entities.length,
+			relationCount: input.relations.length,
+		};
 	}
 }

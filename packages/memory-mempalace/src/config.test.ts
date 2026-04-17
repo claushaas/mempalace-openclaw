@@ -8,6 +8,10 @@ import {
 describe('memory-mempalace config', () => {
 	it('parses a valid stdio MCP config', () => {
 		const config = parseMemoryMempalacePluginConfig({
+			advanced: {
+				knowledgeGraph: true,
+				pinnedMemory: true,
+			},
 			args: ['-m', 'mempalace.mcp_server'],
 			command: 'python3',
 			defaultResultLimit: 10,
@@ -16,6 +20,8 @@ describe('memory-mempalace config', () => {
 		expect(config.transport).toBe('stdio');
 		expect(config.command).toBe('python3');
 		expect(config.defaultTokenBudget).toBe(1200);
+		expect(config.advanced.knowledgeGraph).toBe(true);
+		expect(config.advanced.maxExpandedTerms).toBe(5);
 		expect(getMemoryMempalacePluginConfigFingerprint(config)).toHaveLength(64);
 	});
 

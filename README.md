@@ -23,6 +23,9 @@ Este repositório existe para entregar:
 - `full`
   - config: [examples/openclaw.config.full.json](examples/openclaw.config.full.json)
   - foco: memory plugin + context engine + Active Memory
+- `advanced`
+  - config: [examples/openclaw.config.advanced.json](examples/openclaw.config.advanced.json)
+  - foco: extensões opcionais de V2, como `Knowledge Graph`, `pinned memory`, `query expansion`, `agent diaries` e `compaction` transitória
 
 O status real de cada modo deve ser consultado em [docs/COMPATIBILITY_MATRIX.md](docs/COMPATIBILITY_MATRIX.md).
 
@@ -121,6 +124,7 @@ Scripts disponíveis:
 - `pnpm host-real:smoke:memory-only`
 - `pnpm host-real:smoke:recommended`
 - `pnpm host-real:smoke:full`
+- `pnpm host-real:advanced-recall`
 - `pnpm host-real:recommended-recall`
 - `pnpm host-real:full-recall`
 - `pnpm host-real:skill-mempalace-sync`
@@ -147,7 +151,7 @@ O estado detalhado da compatibilidade está em [docs/COMPATIBILITY_MATRIX.md](do
 
 ## Estado Atual
 
-O repositório já tem bootstrap do monorepo, runtime de memória funcional, hook pack enqueue-only, `sync-daemon` operacional, skill operacional, context engine funcional com prova observável de recall no modo `recommended` e endurecimento local de ranking/cache/failure modes da Etapa 7.
+O repositório já tem bootstrap do monorepo, runtime de memória funcional, hook pack enqueue-only, `sync-daemon` operacional, skill operacional, context engine funcional com prova observável de recall no modo `recommended`, endurecimento local de ranking/cache/failure modes da Etapa 7 e extensões opcionais de V2 da Etapa 8 preservando o contrato base do runtime.
 
 O que já está fechado:
 
@@ -168,6 +172,9 @@ O que já está fechado:
 - contratos operacionais documentados por subsistema
 - package `@mempalace-openclaw/shared` com schemas, tipos, erros e utilidades canônicas
 - ranking explícito `v2`, cache observável em `memory_status` e diagnósticos locais reproduzíveis da Etapa 7
+- flags opcionais de V2 em `memory-mempalace` e `claw-context-mempalace`
+- `Knowledge Graph` opcional por MCP, com fallback limpo quando as tools não existem
+- `pinned memory`, `query expansion`, `agent diaries` e `compaction` transitória validados em `pnpm host-real:advanced-recall`
 
 O que ainda não existe:
 
@@ -179,4 +186,5 @@ Limites relevantes já observados:
 
 - o harness canônico de aceite da Etapa 5 é `pnpm host-real:recommended-recall`;
 - no ambiente linkado do host, o seam público `listActiveMemoryPublicArtifacts(...)` pode não refletir o provider do memory slot final, então o `claw-context-mempalace` usa esse seam como primeira tentativa e cai para o mirror público em disco do `memory-mempalace` quando necessário;
+- as extensões avançadas de V2 são todas opcionais e ficam desligadas por default; o runtime base continua funcional sem `Knowledge Graph`, sem diaries e sem compaction;
 - em `openclaw@2026.4.14`, o modo `full` inicializa corretamente com `active-memory`, mas o pass pré-resposta próprio do Active Memory ainda não ficou observável com `memory_search` + `memory_get` em transcript. Por isso o status correto continua `partially_validated`.

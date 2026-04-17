@@ -14,6 +14,13 @@ export type MemoryBackendConfig = {
 	transport: 'stdio';
 };
 
+export type MemoryAdvancedFeaturesConfig = {
+	agentDiaries: boolean;
+	knowledgeGraph: boolean;
+	pinnedMemory: boolean;
+	queryExpansion: boolean;
+};
+
 function coerceStringArray(value: unknown): string[] {
 	return Array.isArray(value)
 		? value.filter(
@@ -85,4 +92,33 @@ export function getMemoryBackendFingerprint(cfg: unknown): string {
 	return createFingerprint(
 		resolveMemoryBackendConfig(cfg) as unknown as JsonValue,
 	);
+}
+
+export function resolveMemoryAdvancedConfig(
+	cfg: unknown,
+): MemoryAdvancedFeaturesConfig {
+	const config =
+		cfg && typeof cfg === 'object'
+			? (
+					cfg as {
+						plugins?: { entries?: Record<string, { config?: unknown }> };
+					}
+				).plugins?.entries?.['memory-mempalace']?.config
+			: undefined;
+	const rawAdvanced =
+		config &&
+		typeof config === 'object' &&
+		!Array.isArray(config) &&
+		(config as { advanced?: unknown }).advanced &&
+		typeof (config as { advanced?: unknown }).advanced === 'object' &&
+		!Array.isArray((config as { advanced?: unknown }).advanced)
+			? ((config as { advanced: Record<string, unknown> }).advanced ?? {})
+			: {};
+
+	return {
+		agentDiaries: rawAdvanced.agentDiaries === true,
+		knowledgeGraph: rawAdvanced.knowledgeGraph === true,
+		pinnedMemory: rawAdvanced.pinnedMemory === true,
+		queryExpansion: rawAdvanced.queryExpansion === true,
+	};
 }

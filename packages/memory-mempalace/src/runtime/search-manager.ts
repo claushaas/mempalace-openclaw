@@ -163,13 +163,6 @@ export class MemPalaceMemorySearchManager implements MemorySearchManager {
 			sessionKey?: string;
 		},
 	): Promise<HostMemorySearchResult[]> {
-		appendHostRealEvidence('manager.search', {
-			maxResults: opts?.maxResults,
-			minScore: opts?.minScore,
-			query,
-			sessionKey: opts?.sessionKey,
-		});
-
 		const results = await this.service.search({
 			limit: opts?.maxResults,
 			query,
@@ -186,12 +179,48 @@ export class MemPalaceMemorySearchManager implements MemorySearchManager {
 			// keep last cached status when status refresh fails
 		}
 
+		const summary = this.service.getLastSearchSummary();
+		appendHostRealEvidence('manager.search', {
+			expansionApplied: summary.expansionApplied,
+			...(summary.expandedQuery
+				? {
+						expandedQuery: summary.expandedQuery,
+					}
+				: {}),
+			...(summary.expandedTerms && summary.expandedTerms.length > 0
+				? {
+						expandedTerms: summary.expandedTerms,
+					}
+				: {}),
+			...(summary.expansionSource
+				? {
+						expansionSource: summary.expansionSource,
+					}
+				: {}),
+			maxResults: opts?.maxResults,
+			minScore: opts?.minScore,
+			query,
+			rankingProfile: summary.rankingProfile,
+			resultCount: filtered.length,
+			sessionKey: opts?.sessionKey,
+			...(summary.topScore !== undefined
+				? {
+						topScore: summary.topScore,
+					}
+				: {}),
+		});
+
 		return filtered.map(toHostMemoryResult);
 	}
 
 	public status(): MemoryProviderStatus {
 		appendHostRealEvidence('manager.status');
 		return toProviderStatus(this.cachedStatus);
+	}
+
+	public recordContextCompaction(): void {
+		appendHostRealEvidence('manager.recordContextCompaction');
+		this.service.recordContextCompaction();
 	}
 
 	public async sync(params?: {

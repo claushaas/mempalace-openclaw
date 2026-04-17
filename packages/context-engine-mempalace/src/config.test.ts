@@ -5,6 +5,11 @@ import { parseContextEngineMempalacePluginConfig } from './config.js';
 describe('parseContextEngineMempalacePluginConfig', () => {
 	it('applies defaults', () => {
 		expect(parseContextEngineMempalacePluginConfig({})).toEqual({
+			compaction: {
+				enabled: false,
+				maxCompactedEntries: 4,
+				overflowSummaryMaxChars: 320,
+			},
 			includeMemoryPromptAddition: true,
 			maxArtifactLines: 40,
 			maxContextTokens: 1200,

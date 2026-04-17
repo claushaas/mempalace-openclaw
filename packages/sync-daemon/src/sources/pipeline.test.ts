@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildPromoteInput, prepareSourceChunks } from './pipeline.js';
+import {
+	buildKnowledgeGraphUpsertInput,
+	buildPromoteInput,
+	prepareSourceChunks,
+} from './pipeline.js';
 
 describe('stage 7 source pipeline classification', () => {
 	it('prefers explicit source.mode over content heuristics', () => {
@@ -74,5 +78,29 @@ describe('stage 7 source pipeline classification', () => {
 			defaultsHall: 'hall-alpha',
 			defaultsWing: 'wing-main',
 		});
+	});
+
+	it('extracts a deterministic knowledge graph input from explicit markers', () => {
+		const [chunk] = prepareSourceChunks({
+			content:
+				'# Gateway\n\nowner: QA\n\ndepends-on: MemPalace\n\nvalidFrom: 2026-04-01T00:00:00Z',
+			logicalPath: 'docs:gateway.md',
+			relativePath: 'docs/gateway.md',
+			source: {
+				id: 'docs-main',
+				kind: 'documents',
+				path: '/docs',
+			},
+		});
+
+		expect(chunk).toBeDefined();
+		const kgInput = buildKnowledgeGraphUpsertInput({
+			artifactId: 'artifact-gateway',
+			chunk: chunk as NonNullable<typeof chunk>,
+		});
+
+		expect(kgInput).not.toBeNull();
+		expect(kgInput?.entities.length).toBeGreaterThan(0);
+		expect(kgInput?.relations.length).toBeGreaterThan(0);
 	});
 });

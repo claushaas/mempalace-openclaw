@@ -1028,10 +1028,11 @@ Introduzir extensões avançadas sem contaminar o contrato v1 do runtime.
 
 ### Entregáveis
 
-- plano e implementação incremental de KG
-- suporte inicial a pinned memory/query expansion
-- agent diaries
+- implementação incremental de KG como extensão opcional de MCP
+- suporte inicial e observável a `pinned memory` e `query expansion`
+- `agent diaries` em namespace isolado por agente/subagente
 - estratégia de compaction apenas de contexto e caches
+- harness host-real `pnpm host-real:advanced-recall`
 
 ### Implementação
 
@@ -1054,6 +1055,7 @@ Introduzir extensões avançadas sem contaminar o contrato v1 do runtime.
 - Recursos avançados entram sem quebrar contratos v1.
 - O runtime base continua funcional sem KG nem diaries.
 - A semântica append-only é preservada.
+- `pnpm host-real:advanced-recall` valida `query expansion`, priorização de `pinned memory`, isolamento de diary e `compaction` transitória.
 
 ### Riscos Principais
 
@@ -1237,7 +1239,7 @@ Fechar o ciclo de execução com scripts operacionais, validação automatizada 
 | 5 | Context engine + Active Memory | concluída | injeção disciplinada de contexto, smoke tests por modo e prova canônica de recall |
 | 6 | Sync daemon + skill + infra | concluída | `sync-daemon`, `sync.db`, comandos públicos, cutover do spool e validação host-real |
 | 7 | Robustez, ranking e failure modes | concluída | ranking v2, cache observável, refresh incremental, diagnósticos e mitigação dos failure modes |
-| 8 | Recursos avançados V2 | não iniciada | KG, pinned memory, diaries |
+| 8 | Recursos avançados V2 | concluída | KG opcional, pinned memory, query expansion, diaries e compaction transitória |
 | 9 | Scripts, CI e readiness | não iniciada | operação e manutenção previsíveis |
 
 ---

@@ -18,6 +18,10 @@ const memoryType = process.env.MEMPALACE_SEED_MEMORY_TYPE ?? 'facts';
 const source = process.env.MEMPALACE_SEED_SOURCE ?? 'qa-memory';
 const sourcePath =
 	process.env.MEMPALACE_SEED_SOURCE_PATH ?? '/memory/qa-snack.md';
+const metadata =
+	process.env.MEMPALACE_SEED_METADATA_JSON
+		? JSON.parse(process.env.MEMPALACE_SEED_METADATA_JSON)
+		: undefined;
 
 if (!statePath) {
 	throw new Error('MEMPALACE_MCP_SHIM_STATE_PATH is required.');
@@ -40,6 +44,7 @@ try {
 		artifactId,
 		classification,
 		content,
+		...(metadata ? { metadata } : {}),
 		memoryType,
 		source,
 		sourcePath,

@@ -60,6 +60,7 @@ Cobrem:
 - config examples -> validação -> boot mínimo;
 - refresh e status do runtime.
 - diagnósticos e benchmark locais com corpus fixo da Etapa 7.
+- extensões opcionais de V2: `Knowledge Graph`, `pinned memory`, `query expansion`, `agent diaries` e `compaction` transitória.
 
 As fronteiras lógicas dessas integrações estão descritas em [HOOKS.md](HOOKS.md), [MEMORY_RUNTIME.md](MEMORY_RUNTIME.md) e [CONTEXT_ENGINE.md](CONTEXT_ENGINE.md).
 
@@ -86,6 +87,7 @@ Os harnesses com probes não contam como prova da integração final `memory-mem
 - `pnpm host-real:memory-mempalace` conta como prova host-real do package final de memória;
 - `pnpm host-real:context-engine-mempalace` conta como prova host-real do package final de context engine;
 - `pnpm host-real:recommended-recall` é o harness canônico de aceite para recall automático observável.
+- `pnpm host-real:advanced-recall` complementa a cobertura do caminho avançado sem substituir o aceite canônico do modo `recommended`.
 
 Todos usam:
 
@@ -317,6 +319,21 @@ Prova:
 - o hook pack escreve item em `pending/`;
 - `mempalace_sync_run` drena o spool com o `sync-daemon`;
 - o item vai para `processed/`, o artefato entra no backend smoke e um `runtime_refresh` é registrado.
+
+### 3.19 `pnpm host-real:advanced-recall`
+
+Prova:
+
+- o runtime detecta capabilities MCP opcionais sem quebrar o fluxo base;
+- `query expansion` pode ser acionada sob baixa confiança;
+- `pinned memory` recebe prioridade sem criar nova surface pública;
+- `agent diaries` permanecem isolados e só entram quando o agente bate ou o prompt é explicitamente sobre memória anterior;
+- `compaction` gera apenas bloco transitório com provenance mínima;
+- a resposta final continua correta com as flags avançadas habilitadas.
+
+Status atual:
+
+- `validated`
 
 Observação:
 

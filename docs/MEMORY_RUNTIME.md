@@ -120,6 +120,14 @@ Perfil atual endurecido na Etapa 7:
 - colapso observável de duplicatas por `artifactId` e fingerprint de snippet;
 - fallback por keyword ainda permitido, mas agora exposto em `memory_status.diagnostics.keywordFallbackApplied`.
 
+Extensões opcionais entregues na Etapa 8:
+
+- `rankingProfile = "v3"` quando `advanced.pinnedMemory = true`;
+- `pinned memory` derivado de `metadata.pinned === true`, com escopo por `metadata.pinScope`;
+- `query expansion` opcional quando a busca original vier vazia ou com baixa confiança;
+- `Knowledge Graph` via tools MCP opcionais;
+- `agent diaries` como namespace isolado no backend, fora do retrieval geral por default.
+
 O retrieval composer não deve:
 
 - depender de resumos como fonte de verdade;
@@ -162,6 +170,24 @@ Essa surface publica um catálogo de artefatos JSON espelhados em disco para con
   - latência do último refresh;
   - quantidade de resultados colapsados por dedupe;
   - uso do fallback por keyword.
+  - `advancedCapabilities`;
+  - `cacheEvictions`;
+  - `contextCompactions`.
+
+Config pública opcional de V2 em `plugins.entries.memory-mempalace.config.advanced`:
+
+- `knowledgeGraph?: boolean`
+- `pinnedMemory?: boolean`
+- `queryExpansion?: boolean`
+- `agentDiaries?: boolean`
+- `maxExpandedTerms?: number`
+- `lowConfidenceScoreThreshold?: number`
+
+Regras:
+
+- todas essas flags ficam desligadas por default;
+- ausência de tools MCP avançadas produz degradação observável, não erro fatal;
+- não existe nova superfície principal `memory_*` para V2.
 
 ## Integração com MemPalace
 
@@ -207,9 +233,11 @@ Consequência prática:
 
 ## v2
 
-- pinned memory.
-- query expansion.
-- ranking avançado e sinais estruturais adicionais.
+- `Knowledge Graph` opcional via MCP.
+- `pinned memory` como boost controlado por metadata.
+- `query expansion` limitada a uma segunda busca.
+- `agent diaries` isolados do retrieval geral por default.
+- `compaction` restrita a contexto/caches transitórios e observável em `memory_status`.
 
 ## não-objetivos
 

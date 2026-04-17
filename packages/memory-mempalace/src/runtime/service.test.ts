@@ -107,6 +107,12 @@ describe('MemoryRuntimeService', () => {
 		expect(status.cache.metadataEntries).toBeGreaterThanOrEqual(1);
 		expect(status.cache.stale).toBe(false);
 		expect(status.diagnostics.rankingProfile).toBe('v2');
+		expect(status.diagnostics.advancedCapabilities).toMatchObject({
+			agentDiaries: 'disabled',
+			knowledgeGraph: 'disabled',
+			pinnedMemory: 'disabled',
+			queryExpansion: 'disabled',
+		});
 
 		await expect(
 			service.index({
@@ -126,5 +132,8 @@ describe('MemoryRuntimeService', () => {
 		expect(promoted.content).toBe('new memory');
 		const refreshedStatus = await service.status();
 		expect(refreshedStatus.cache.stale).toBe(false);
+		expect(refreshedStatus.diagnostics.cacheEvictions).toBeGreaterThanOrEqual(
+			1,
+		);
 	});
 });

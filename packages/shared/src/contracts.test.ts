@@ -3,7 +3,12 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import {
+	AgentDiaryAppendInputSchema,
+	AgentDiaryEntrySchema,
+	AgentDiaryQuerySchema,
 	HookEnvelopeSchema,
+	KnowledgeGraphExpansionResultSchema,
+	KnowledgeGraphUpsertInputSchema,
 	MemoryArtifactSchema,
 	MemoryIndexRequestSchema,
 	MemoryPromoteInputSchema,
@@ -157,6 +162,14 @@ describe('contract schemas', () => {
 				},
 				contextEngineCompatible: true,
 				diagnostics: {
+					advancedCapabilities: {
+						agentDiaries: 'enabled',
+						knowledgeGraph: 'unavailable',
+						pinnedMemory: 'enabled',
+						queryExpansion: 'disabled',
+					},
+					cacheEvictions: 1,
+					contextCompactions: 2,
 					duplicateResultsCollapsed: 3,
 					keywordFallbackApplied: false,
 					rankingProfile: 'v2',
@@ -174,8 +187,79 @@ describe('contract schemas', () => {
 				artifactEntries: 2,
 			},
 			diagnostics: {
+				advancedCapabilities: {
+					agentDiaries: 'enabled',
+					knowledgeGraph: 'unavailable',
+					pinnedMemory: 'enabled',
+					queryExpansion: 'disabled',
+				},
+				cacheEvictions: 1,
+				contextCompactions: 2,
 				rankingProfile: 'v2',
 			},
 		});
+	});
+
+	it('parses optional knowledge graph payloads', () => {
+		expect(
+			KnowledgeGraphUpsertInputSchema.parse({
+				entities: [
+					{
+						entityId: 'decision:mcp',
+						entityType: 'decision',
+						name: 'MCP backend seam',
+						sourceArtifactId: 'artifact-decision',
+					},
+				],
+				relations: [
+					{
+						relationType: 'uses',
+						sourceArtifactId: 'artifact-decision',
+						sourceEntityId: 'decision:mcp',
+						targetEntityId: 'concept:mcp',
+					},
+				],
+			}),
+		).toMatchObject({
+			entities: expect.any(Array),
+			relations: expect.any(Array),
+		});
+		expect(
+			KnowledgeGraphExpansionResultSchema.parse({
+				expandedTerms: ['mcp', 'backend seam'],
+				reason: 'graph-neighbors',
+			}).expandedTerms,
+		).toEqual(['mcp', 'backend seam']);
+	});
+
+	it('parses optional diary payloads', () => {
+		expect(
+			AgentDiaryAppendInputSchema.parse({
+				agentId: 'main',
+				content: 'Short diary note.',
+				metadata: {
+					recordKind: 'agent-diary',
+				},
+				sessionId: 'session-1',
+			}),
+		).toMatchObject({
+			agentId: 'main',
+		});
+		expect(
+			AgentDiaryEntrySchema.parse({
+				agentId: 'main',
+				content: 'Short diary note.',
+				entryId: 'entry-1',
+				source: 'agent-diary:main',
+				sourcePath: '/diaries/main/2026/04/16/entry-1.json',
+				updatedAt: '2026-04-16T12:00:00Z',
+			}).entryId,
+		).toBe('entry-1');
+		expect(
+			AgentDiaryQuerySchema.parse({
+				agentId: 'main',
+				limit: 5,
+			}).limit,
+		).toBe(5);
 	});
 });

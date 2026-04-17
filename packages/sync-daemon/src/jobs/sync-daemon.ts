@@ -4,6 +4,7 @@ import {
 	createFingerprint,
 	type MemoryPromoteInput,
 	MemoryPromoteInputSchema,
+	type MemPalaceKnowledgeGraphClient,
 	parseWithSchema,
 	type SourceConfig,
 	SourceConfigSchema,
@@ -11,12 +12,16 @@ import {
 } from '@mempalace-openclaw/shared';
 
 import { SyncDaemonMemPalaceClient } from '../client/mcp-stdio-client.js';
-import { resolveMemoryBackendConfig } from '../config/runtime.js';
+import {
+	resolveMemoryAdvancedConfig,
+	resolveMemoryBackendConfig,
+} from '../config/runtime.js';
 import { resolveSyncStatePaths, type SyncStatePaths } from '../config/state.js';
 import { SyncDatabase } from '../db/store.js';
 import { triggerRuntimeRefresh } from '../runtime-refresh/refresh.js';
 import { isScheduleDue } from '../scheduler/cron.js';
 import {
+	buildKnowledgeGraphUpsertInput,
 	prepareSourceChunks,
 	promoteChunks,
 	readSourceCandidateContent,
@@ -195,6 +200,10 @@ export class SyncDaemon {
 
 	private readonly statePaths: SyncStatePaths;
 
+	private readonly advancedConfig: ReturnType<
+		typeof resolveMemoryAdvancedConfig
+	>;
+
 	public constructor(options: CreateSyncDaemonOptions) {
 		this.clientFactory =
 			options.clientFactory ??
@@ -205,8 +214,62 @@ export class SyncDaemon {
 		this.hostConfig = options.hostConfig;
 		this.logger = options.logger ?? DEFAULT_LOGGER;
 		this.statePaths = options.statePaths ?? resolveSyncStatePaths();
+		this.advancedConfig = resolveMemoryAdvancedConfig(this.hostConfig);
 		ensureSpoolDirs(this.statePaths);
 		migrateLegacySpool(this.statePaths);
+	}
+
+	private async maybeUpsertKnowledgeGraph(params: {
+		artifactId: string;
+		chunk: ReturnType<typeof prepareSourceChunks>[number];
+		client: SyncDaemonMemPalaceClient;
+	}): Promise<void> {
+		if (!this.advancedConfig.knowledgeGraph) {
+			appendDaemonEvidence(this.statePaths, 'graph.upsert.skipped', {
+				artifactId: params.artifactId,
+				reason: 'knowledge-graph-disabled',
+			});
+			return;
+		}
+
+		const kgInput = buildKnowledgeGraphUpsertInput({
+			artifactId: params.artifactId,
+			chunk: params.chunk,
+		});
+		if (!kgInput) {
+			appendDaemonEvidence(this.statePaths, 'graph.upsert.skipped', {
+				artifactId: params.artifactId,
+				reason: 'no-graph-signals',
+			});
+			return;
+		}
+
+		try {
+			const capabilities =
+				typeof params.client.capabilities === 'function'
+					? await params.client.capabilities()
+					: new Set<string>();
+			if (!capabilities.has('mempalace_graph_upsert')) {
+				appendDaemonEvidence(this.statePaths, 'graph.upsert.skipped', {
+					artifactId: params.artifactId,
+					reason: 'tool-unavailable',
+				});
+				return;
+			}
+			await (
+				params.client as unknown as MemPalaceKnowledgeGraphClient
+			).upsertGraph(kgInput);
+			appendDaemonEvidence(this.statePaths, 'graph.upsert.accepted', {
+				artifactId: params.artifactId,
+				entityCount: kgInput.entities.length,
+				relationCount: kgInput.relations.length,
+			});
+		} catch (error) {
+			appendDaemonEvidence(this.statePaths, 'graph.upsert.failed', {
+				artifactId: params.artifactId,
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
 	}
 
 	public close(): void {
@@ -475,6 +538,18 @@ export class SyncDaemon {
 						});
 						artifactsPromoted += artifacts.length;
 						sourceArtifactsPromoted += artifacts.length;
+						for (const artifact of artifacts) {
+							const chunk = uniqueChunks.find(
+								(candidate) => candidate.artifactId === artifact.artifactId,
+							);
+							if (chunk) {
+								await this.maybeUpsertKnowledgeGraph({
+									artifactId: artifact.artifactId,
+									chunk,
+									client,
+								});
+							}
+						}
 						this.db.recordFile(candidate.logicalPath, sourceHash);
 						appendDaemonEvidence(this.statePaths, 'source.file.promoted', {
 							artifactIds: artifacts.map((artifact) => artifact.artifactId),

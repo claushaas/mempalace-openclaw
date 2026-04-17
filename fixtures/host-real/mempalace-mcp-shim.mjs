@@ -11,6 +11,10 @@ const DEFAULT_ARTIFACTS = [
 		source: 'repo-main',
 		sourcePath: '/repo/decision.md',
 		sourceType: 'filesystem',
+		metadata: {
+			pinned: true,
+			pinScope: 'global',
+		},
 		title: 'Backend seam decision',
 		updatedAt: '2026-04-15T12:00:00Z',
 	},
@@ -63,6 +67,14 @@ function buildDefaultState() {
 		artifacts: Object.fromEntries(
 			DEFAULT_ARTIFACTS.map((artifact) => [artifact.artifactId, artifact]),
 		),
+		diaries: {},
+		graph: {
+			expansions: {
+				'recall cinema preference': ['qa', 'movie', 'night', 'snack', 'lemon', 'pepper', 'wings'],
+				'movie night preference': ['qa', 'snack', 'lemon', 'pepper', 'wings'],
+			},
+			relations: [],
+		},
 		lastRefreshAt: DEFAULT_LAST_REFRESH_AT,
 		sources: DEFAULT_SOURCES,
 	};
@@ -153,6 +165,26 @@ function listTools() {
 				description: 'Inspect MemPalace runtime status.',
 				name: 'mempalace_status',
 			},
+			{
+				description: 'Upsert simple knowledge graph entities and relations.',
+				name: 'mempalace_graph_upsert',
+			},
+			{
+				description: 'Expand a query from the knowledge graph.',
+				name: 'mempalace_graph_expand_query',
+			},
+			{
+				description: 'Append an agent diary entry.',
+				name: 'mempalace_diary_append',
+			},
+			{
+				description: 'List agent diary entries.',
+				name: 'mempalace_diary_list',
+			},
+			{
+				description: 'Get a single diary entry.',
+				name: 'mempalace_diary_get',
+			},
 		],
 	};
 }
@@ -176,7 +208,9 @@ function searchArtifacts(query, limit = 8) {
 			return {
 				artifactId: artifact.artifactId,
 				classification: artifact.classification,
+				metadata: artifact.metadata,
 				memoryType: artifact.memoryType,
+				retrievalReason: artifact.retrievalReason,
 				score,
 				snippet: artifact.content.slice(0, 160),
 				source: artifact.source,
@@ -215,6 +249,9 @@ function handleToolCall(id, params) {
 				artifactId,
 				classification: args.classification ?? 'artifact',
 				content: args.content ?? 'promoted content',
+				...(args.metadata && typeof args.metadata === 'object' && !Array.isArray(args.metadata)
+					? { metadata: args.metadata }
+					: {}),
 				memoryType: args.memoryType ?? 'discoveries',
 				source: args.source ?? 'manual',
 				sourcePath: args.sourcePath ?? `/manual/${artifactId}.md`,
@@ -256,6 +293,102 @@ function handleToolCall(id, params) {
 				sources: state.sources,
 			});
 			return;
+		case 'mempalace_graph_upsert': {
+			state = {
+				...state,
+				graph: {
+					...(state.graph ?? { expansions: {}, relations: [] }),
+					relations: [
+						...((state.graph?.relations ?? [])),
+						...(Array.isArray(args.relations) ? args.relations : []),
+					],
+				},
+			};
+			writeState(state);
+			respondTool(id, {
+				accepted: true,
+				entityCount: Array.isArray(args.entities) ? args.entities.length : 0,
+				relationCount: Array.isArray(args.relations) ? args.relations.length : 0,
+			});
+			return;
+		}
+		case 'mempalace_graph_expand_query': {
+			const normalizedQuery = String(args.query ?? '').toLowerCase().trim();
+			const expandedTerms =
+				state.graph?.expansions?.[normalizedQuery] ??
+				(normalizedQuery.includes('cinema')
+					? ['qa', 'movie', 'night', 'snack', 'lemon', 'pepper', 'wings']
+					: []);
+			respondTool(id, {
+				expandedTerms,
+				reason: expandedTerms.length > 0 ? 'shim-graph-expansion' : 'shim-no-expansion',
+			});
+			return;
+		}
+		case 'mempalace_diary_append': {
+			const entryId = args.entryId ?? `diary-${Date.now()}`;
+			const diaryEntry = {
+				agentId: args.agentId ?? 'unknown-agent',
+				content: args.content ?? '',
+				entryId,
+				metadata:
+					args.metadata && typeof args.metadata === 'object' && !Array.isArray(args.metadata)
+						? args.metadata
+						: {},
+				sessionId: args.sessionId,
+				source: `agent-diary:${args.agentId ?? 'unknown-agent'}`,
+				sourcePath: `/diaries/${args.agentId ?? 'unknown-agent'}/${entryId}.json`,
+				subagentId: args.subagentId,
+				updatedAt: new Date().toISOString(),
+			};
+			state = {
+				...state,
+				diaries: {
+					...(state.diaries ?? {}),
+					[entryId]: diaryEntry,
+				},
+				artifacts: {
+					...state.artifacts,
+					[`diary-${entryId}`]: {
+						artifactId: `diary-${entryId}`,
+						classification: 'conversation',
+						content: diaryEntry.content,
+						metadata: {
+							...(diaryEntry.metadata ?? {}),
+							agentId: diaryEntry.agentId,
+							entryId,
+							recordKind: 'agent-diary',
+							...(diaryEntry.subagentId ? { subagentId: diaryEntry.subagentId } : {}),
+						},
+						memoryType: 'events',
+						source: diaryEntry.source,
+						sourcePath: diaryEntry.sourcePath,
+						sourceType: 'manual',
+						updatedAt: diaryEntry.updatedAt,
+					},
+				},
+			};
+			writeState(state);
+			respondTool(id, diaryEntry);
+			return;
+		}
+		case 'mempalace_diary_list': {
+			const entries = Object.values(state.diaries ?? {})
+				.filter((entry) => entry.agentId === args.agentId)
+				.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+				.slice(0, Number(args.limit ?? 8));
+			respondTool(id, entries);
+			return;
+		}
+		case 'mempalace_diary_get': {
+			const entry = state.diaries?.[args.entryId];
+			if (!entry) {
+				respondError(id, -32004, `Diary entry not found: ${args.entryId}`);
+				return;
+			}
+			respondTool(id, entry);
+			return;
+		}
 		default:
 			respondError(id, -32601, `Unknown tool: ${name}`);
 	}

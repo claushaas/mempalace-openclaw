@@ -51,6 +51,15 @@ Provenance mínima exigida por artefato ou resultado:
 - `updatedAt`
 - `classification`
 
+Metadados opcionais já suportados no contrato atual:
+
+- `metadata?: Record<string, JsonValue>` em `artifact` e `result`;
+- uso controlado para sinais opcionais como:
+  - `pinned`
+  - `pinScope`
+  - `recordKind = "agent-diary"`
+  - metadados auxiliares de classificação e retrieval.
+
 ## Envelopes
 
 Envelope lógico mínimo para hooks e integrações internas:
@@ -135,6 +144,14 @@ Regra:
 - o protocolo deve permanecer pequeno e auditável em v1.
 - extensões futuras devem ser adicionadas por compatibilidade incremental, não por reescrita do contrato base.
 - o documento continua congelando a semântica lógica; os schemas TypeScript canônicos já vivem em `packages/shared`.
+- extensões avançadas já adicionadas na Etapa 8 entram como contratos aditivos, não como ruptura:
+  - `KnowledgeGraphEntity`
+  - `KnowledgeGraphRelation`
+  - `KnowledgeGraphUpsertInput`
+  - `KnowledgeGraphExpansionResult`
+  - `AgentDiaryEntry`
+  - `AgentDiaryAppendInput`
+  - `AgentDiaryQuery`
 
 ## v1 obrigatório
 
@@ -152,10 +169,10 @@ Regra:
 
 ## v2
 
-- extensões para knowledge graph.
-- pinned memory.
-- query expansion.
-- agent diaries e estados mais ricos.
+- `Knowledge Graph` opcional por MCP.
+- `pinned memory` e `query expansion` como metadados e heurísticas de retrieval, sem nova surface principal.
+- `agent diaries` como namespace isolado e append-only no backend.
+- estados diagnósticos mais ricos em `memory_status`.
 
 ## não-objetivos
 

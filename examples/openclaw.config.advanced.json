@@ -1,0 +1,47 @@
+{
+	"plugins": {
+		"entries": {
+			"claw-context-mempalace": {
+				"config": {
+					"compaction": {
+						"enabled": true,
+						"maxCompactedEntries": 4,
+						"overflowSummaryMaxChars": 160
+					},
+					"includeMemoryPromptAddition": true,
+					"maxArtifactLines": 40,
+					"maxContextTokens": 320,
+					"maxEntries": 8,
+					"minScore": 0.15
+				},
+				"enabled": true
+			},
+			"memory-mempalace": {
+				"config": {
+					"advanced": {
+						"agentDiaries": true,
+						"knowledgeGraph": true,
+						"lowConfidenceScoreThreshold": 0.45,
+						"maxExpandedTerms": 5,
+						"pinnedMemory": true,
+						"queryExpansion": true
+					},
+					"args": ["/absolute/path/to/mempalace-mcp-server.mjs"],
+					"command": "node",
+					"defaultResultLimit": 8,
+					"defaultTokenBudget": 1200,
+					"env": {
+						"MEMPALACE_ENDPOINT": "replace-me"
+					},
+					"timeoutMs": 5000,
+					"transport": "stdio"
+				},
+				"enabled": true
+			}
+		},
+		"slots": {
+			"contextEngine": "claw-context-mempalace",
+			"memory": "memory-mempalace"
+		}
+	}
+}

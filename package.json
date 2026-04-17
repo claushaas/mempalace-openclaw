@@ -29,6 +29,7 @@
 		"host-real:smoke:recommended": "node ./scripts/host-real/smoke-recommended.mjs",
 		"host-real:smoke:full": "node ./scripts/host-real/smoke-full.mjs",
 		"host-real:recommended-recall": "node ./scripts/host-real/recommended-recall.mjs",
+		"host-real:advanced-recall": "node ./scripts/host-real/advanced-recall.mjs",
 		"host-real:full-recall": "node ./scripts/host-real/full-recall.mjs",
 		"host-real:skill-mempalace-sync": "node ./scripts/host-real/skill-mempalace-sync.mjs",
 		"host-real:sync-filesystem": "node ./scripts/host-real/sync-filesystem.mjs",

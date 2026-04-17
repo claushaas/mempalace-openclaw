@@ -1,8 +1,17 @@
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
 
 import {
+	type AgentDiaryAppendInput,
+	type AgentDiaryEntry,
+	AgentDiaryEntrySchema,
+	type AgentDiaryQuery,
 	ArtifactNotFoundError,
 	BackendUnavailableError,
+	createFingerprint,
+	type JsonValue,
+	type KnowledgeGraphExpansionResult,
+	KnowledgeGraphExpansionResultSchema,
+	type KnowledgeGraphUpsertInput,
 	type MemoryArtifact,
 	MemoryArtifactSchema,
 	type MemoryIndexRequest,
@@ -11,6 +20,8 @@ import {
 	type MemorySearchResult,
 	MemorySearchResultSchema,
 	type MemPalaceClient,
+	type MemPalaceDiaryClient,
+	type MemPalaceKnowledgeGraphClient,
 	type MemPalaceRefreshResult,
 	parseWithSchema,
 	type RuntimeHealth,
@@ -526,7 +537,62 @@ function createSearchFallbackArtifact(
 	throw new ArtifactNotFoundError(artifactId);
 }
 
-export class McpStdioMemPalaceClient implements MemPalaceClient {
+function createDiaryArtifactId(entryId: string): string {
+	return `diary-${entryId}`;
+}
+
+function createDiaryFingerprintPayload(
+	input: AgentDiaryAppendInput,
+): Record<string, JsonValue> {
+	return {
+		agentId: input.agentId,
+		content: input.content,
+		...(input.entryId ? { entryId: input.entryId } : {}),
+		...(input.metadata ? { metadata: input.metadata } : {}),
+		...(input.sessionId ? { sessionId: input.sessionId } : {}),
+		...(input.subagentId ? { subagentId: input.subagentId } : {}),
+	};
+}
+
+function normalizeDiaryEntry(candidate: MemoryArtifact): AgentDiaryEntry {
+	return parseWithSchema(
+		AgentDiaryEntrySchema,
+		{
+			agentId:
+				candidate.agentId ??
+				(typeof candidate.metadata?.agentId === 'string'
+					? candidate.metadata.agentId
+					: undefined) ??
+				'unknown-agent',
+			content: candidate.content,
+			entryId:
+				typeof candidate.metadata?.entryId === 'string'
+					? candidate.metadata.entryId
+					: candidate.artifactId.replace(/^diary-/, ''),
+			metadata: candidate.metadata,
+			sessionId:
+				candidate.sessionId ??
+				(typeof candidate.metadata?.sessionId === 'string'
+					? candidate.metadata.sessionId
+					: undefined),
+			source: candidate.source,
+			sourcePath: candidate.sourcePath,
+			subagentId:
+				typeof candidate.metadata?.subagentId === 'string'
+					? candidate.metadata.subagentId
+					: undefined,
+			updatedAt: candidate.updatedAt,
+		},
+		'Invalid diary artifact fallback payload.',
+	);
+}
+
+export class McpStdioMemPalaceClient
+	implements
+		MemPalaceClient,
+		MemPalaceKnowledgeGraphClient,
+		MemPalaceDiaryClient
+{
 	private readonly connection: StdioMcpConnection;
 
 	public constructor(
@@ -537,6 +603,10 @@ export class McpStdioMemPalaceClient implements MemPalaceClient {
 
 	public async close(): Promise<void> {
 		await this.connection.close();
+	}
+
+	public async capabilities(): Promise<Set<string>> {
+		return this.connection.listTools();
 	}
 
 	public async get(artifactId: string): Promise<MemoryArtifact> {
@@ -657,6 +727,208 @@ export class McpStdioMemPalaceClient implements MemPalaceClient {
 			return normalizeSearchResults(payload);
 		} catch (error) {
 			throw buildTransportError('Failed to search MemPalace MCP.', {
+				cause: error,
+			});
+		}
+	}
+
+	public async expandQuery(
+		query: MemorySearchQuery,
+	): Promise<KnowledgeGraphExpansionResult> {
+		try {
+			const payload = await this.callTool('mempalace_graph_expand_query', {
+				classifications: query.filters?.classifications,
+				limit: query.limit ?? this.config.defaultResultLimit,
+				memoryTypes: query.filters?.memoryTypes,
+				query: query.query,
+				sourceId: query.filters?.sourceId,
+				tokenBudget: query.tokenBudget ?? this.config.defaultTokenBudget,
+			});
+			return parseWithSchema(
+				KnowledgeGraphExpansionResultSchema,
+				payload,
+				'Invalid knowledge graph expansion payload.',
+			);
+		} catch (error) {
+			if (error instanceof McpToolNotFoundError) {
+				throw new BackendUnavailableError(
+					'MemPalace backend does not expose knowledge graph query expansion.',
+					error,
+				);
+			}
+			throw buildTransportError(
+				'Failed to expand query through MemPalace KG.',
+				{
+					cause: error,
+				},
+			);
+		}
+	}
+
+	public async upsertGraph(
+		input: KnowledgeGraphUpsertInput,
+	): Promise<{ accepted: true; entityCount: number; relationCount: number }> {
+		try {
+			const payload = await this.callTool('mempalace_graph_upsert', input);
+			if (
+				payload &&
+				typeof payload === 'object' &&
+				(payload as { accepted?: unknown }).accepted === true
+			) {
+				return {
+					accepted: true,
+					entityCount:
+						typeof (payload as { entityCount?: unknown }).entityCount ===
+						'number'
+							? (payload as { entityCount: number }).entityCount
+							: input.entities.length,
+					relationCount:
+						typeof (payload as { relationCount?: unknown }).relationCount ===
+						'number'
+							? (payload as { relationCount: number }).relationCount
+							: input.relations.length,
+				};
+			}
+			return {
+				accepted: true,
+				entityCount: input.entities.length,
+				relationCount: input.relations.length,
+			};
+		} catch (error) {
+			if (error instanceof McpToolNotFoundError) {
+				throw new BackendUnavailableError(
+					'MemPalace backend does not expose knowledge graph upsert.',
+					error,
+				);
+			}
+			throw buildTransportError('Failed to upsert MemPalace knowledge graph.', {
+				cause: error,
+			});
+		}
+	}
+
+	public async appendDiaryEntry(
+		input: AgentDiaryAppendInput,
+	): Promise<AgentDiaryEntry> {
+		try {
+			try {
+				const payload = await this.callTool('mempalace_diary_append', input);
+				return parseWithSchema(
+					AgentDiaryEntrySchema,
+					payload,
+					'Invalid diary append payload.',
+				);
+			} catch (error) {
+				if (!(error instanceof McpToolNotFoundError)) {
+					throw error;
+				}
+				const fallbackFingerprint = createFingerprint(
+					createDiaryFingerprintPayload(input),
+				);
+				const artifact = await this.promote({
+					agentId: input.agentId,
+					artifactId:
+						input.entryId ?? createDiaryArtifactId(fallbackFingerprint),
+					classification: 'conversation',
+					content: input.content,
+					memoryType: 'events',
+					metadata: {
+						...(input.metadata ?? {}),
+						agentId: input.agentId,
+						entryId: input.entryId ?? fallbackFingerprint,
+						recordKind: 'agent-diary',
+						...(input.subagentId
+							? {
+									subagentId: input.subagentId,
+								}
+							: {}),
+					},
+					...(input.sessionId
+						? {
+								sessionId: input.sessionId,
+							}
+						: {}),
+					source: `agent-diary:${input.agentId}`,
+					sourcePath: `/diaries/${input.agentId}/${new Date()
+						.toISOString()
+						.slice(0, 10)}/${input.entryId ?? fallbackFingerprint}.json`,
+				});
+				return normalizeDiaryEntry(artifact);
+			}
+		} catch (error) {
+			throw buildTransportError('Failed to append agent diary entry.', {
+				cause: error,
+			});
+		}
+	}
+
+	public async getDiaryEntry(entryId: string): Promise<AgentDiaryEntry> {
+		try {
+			try {
+				const payload = await this.callTool('mempalace_diary_get', {
+					entryId,
+				});
+				return parseWithSchema(
+					AgentDiaryEntrySchema,
+					payload,
+					'Invalid diary entry payload.',
+				);
+			} catch (error) {
+				if (!(error instanceof McpToolNotFoundError)) {
+					throw error;
+				}
+				return normalizeDiaryEntry(
+					await this.get(createDiaryArtifactId(entryId)),
+				);
+			}
+		} catch (error) {
+			throw buildTransportError('Failed to get agent diary entry.', {
+				cause: error,
+			});
+		}
+	}
+
+	public async listDiaryEntries(
+		query: AgentDiaryQuery,
+	): Promise<AgentDiaryEntry[]> {
+		try {
+			try {
+				const payload = await this.callTool('mempalace_diary_list', query);
+				if (!Array.isArray(payload)) {
+					return [];
+				}
+				return payload.map((entry) =>
+					parseWithSchema(
+						AgentDiaryEntrySchema,
+						entry,
+						'Invalid diary list entry payload.',
+					),
+				);
+			} catch (error) {
+				if (!(error instanceof McpToolNotFoundError)) {
+					throw error;
+				}
+				const artifacts = await this.search({
+					limit: query.limit ?? this.config.defaultResultLimit,
+					query: query.agentId,
+				});
+				const filtered = artifacts.filter(
+					(entry) => entry.source === `agent-diary:${query.agentId}`,
+				);
+				const diaryEntries: AgentDiaryEntry[] = [];
+				for (const artifact of filtered) {
+					try {
+						diaryEntries.push(
+							normalizeDiaryEntry(await this.get(artifact.artifactId)),
+						);
+					} catch {
+						// keep fallback best-effort
+					}
+				}
+				return diaryEntries;
+			}
+		} catch (error) {
+			throw buildTransportError('Failed to list agent diary entries.', {
 				cause: error,
 			});
 		}

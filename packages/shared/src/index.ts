@@ -1,4 +1,9 @@
-export type { MemPalaceClient, MemPalaceRefreshResult } from './client.js';
+export type {
+	MemPalaceClient,
+	MemPalaceDiaryClient,
+	MemPalaceKnowledgeGraphClient,
+	MemPalaceRefreshResult,
+} from './client.js';
 export {
 	HOOK_ENVELOPE_VERSION_VALUES,
 	JOB_STATUS_VALUES,
@@ -18,11 +23,18 @@ export {
 	SourceNotFoundError,
 } from './errors.js';
 export type {
+	AgentDiaryAppendInput,
+	AgentDiaryEntry,
+	AgentDiaryQuery,
 	ContextInjectionEntry,
 	HookEnvelope,
 	HookEnvelopeVersion,
 	JobStatus,
 	JsonMetadata,
+	KnowledgeGraphEntity,
+	KnowledgeGraphExpansionResult,
+	KnowledgeGraphRelation,
+	KnowledgeGraphUpsertInput,
 	MemoryArtifact,
 	MemoryIndexRequest,
 	MemoryPromoteInput,
@@ -45,10 +57,17 @@ export type {
 	SyncJob,
 } from './schemas.js';
 export {
+	AgentDiaryAppendInputSchema,
+	AgentDiaryEntrySchema,
+	AgentDiaryQuerySchema,
 	ContextInjectionEntrySchema,
 	HookEnvelopeSchema,
 	HookEnvelopeVersionSchema,
 	JobStatusSchema,
+	KnowledgeGraphEntitySchema,
+	KnowledgeGraphExpansionResultSchema,
+	KnowledgeGraphRelationSchema,
+	KnowledgeGraphUpsertInputSchema,
 	MemoryArtifactSchema,
 	MemoryIndexRequestSchema,
 	MemoryPromoteInputSchema,

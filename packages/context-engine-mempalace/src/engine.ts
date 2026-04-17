@@ -26,6 +26,7 @@ import { getActiveMemorySearchManager } from 'openclaw/plugin-sdk/memory-host-se
 
 import type { ResolvedContextEngineMempalacePluginConfig } from './config.js';
 import { appendContextEngineEvidence } from './evidence.js';
+import { ContextEngineDiaryClient } from './mcp-client.js';
 
 const CLASSIFICATION_PRIORITY = {
 	artifact: 3,
@@ -35,6 +36,7 @@ const CLASSIFICATION_PRIORITY = {
 	problem: 1,
 } as const;
 const MEMORY_PLUGIN_ID = 'memory-mempalace';
+const DIARY_SOURCE_PREFIX = 'agent-diary:';
 
 function approximateTokens(text: string): number {
 	return Math.max(1, Math.ceil(text.length / 4));
@@ -46,6 +48,18 @@ function approximateMessageTokens(messages: ContextMessages): number {
 	return approximateTokens(JSON.stringify(messages));
 }
 
+function extractMessageText(message: unknown): string {
+	if (
+		message &&
+		typeof message === 'object' &&
+		'content' in message &&
+		typeof (message as { content?: unknown }).content === 'string'
+	) {
+		return (message as { content: string }).content;
+	}
+	return '';
+}
+
 function computeRecency(updatedAt: string): string {
 	const ageMs = Date.now() - Date.parse(updatedAt);
 	if (!Number.isFinite(ageMs) || ageMs < 1000 * 60 * 60 * 24) {
@@ -55,6 +69,20 @@ function computeRecency(updatedAt: string): string {
 		return 'warm';
 	}
 	return 'historical';
+}
+
+function isDiaryRelevantPrompt(prompt: string): boolean {
+	const normalized = prompt.toLowerCase();
+	return [
+		'earlier',
+		'mentioned',
+		'remember',
+		'remind',
+		'told you',
+		'told me',
+		'before',
+		'previously',
+	].some((term) => normalized.includes(term));
 }
 
 function compareEntries(
@@ -74,6 +102,97 @@ function compareEntries(
 	}
 
 	return Date.parse(right.updatedAt) - Date.parse(left.updatedAt);
+}
+
+function resolveMemoryPluginConfig(api: OpenClawPluginApi): {
+	advanced: {
+		agentDiaries: boolean;
+		knowledgeGraph: boolean;
+		pinnedMemory: boolean;
+		queryExpansion: boolean;
+	};
+	backend?: {
+		args: string[];
+		command: string;
+		cwd?: string;
+		env?: Record<string, string>;
+		timeoutMs: number;
+	};
+} {
+	const raw =
+		api.config &&
+		typeof api.config === 'object' &&
+		(
+			api.config as {
+				plugins?: { entries?: Record<string, { config?: unknown }> };
+			}
+		).plugins?.entries?.[MEMORY_PLUGIN_ID]?.config &&
+		typeof (
+			api.config as {
+				plugins?: { entries?: Record<string, { config?: unknown }> };
+			}
+		).plugins?.entries?.[MEMORY_PLUGIN_ID]?.config === 'object'
+			? ((
+					api.config as {
+						plugins?: { entries?: Record<string, { config?: unknown }> };
+					}
+				).plugins?.entries?.[MEMORY_PLUGIN_ID]?.config as Record<
+					string,
+					unknown
+				>)
+			: {};
+	const advanced =
+		raw.advanced &&
+		typeof raw.advanced === 'object' &&
+		!Array.isArray(raw.advanced)
+			? (raw.advanced as Record<string, unknown>)
+			: {};
+
+	const command =
+		typeof raw.command === 'string' && raw.command.trim()
+			? raw.command.trim()
+			: undefined;
+
+	return {
+		advanced: {
+			agentDiaries: advanced.agentDiaries === true,
+			knowledgeGraph: advanced.knowledgeGraph === true,
+			pinnedMemory: advanced.pinnedMemory === true,
+			queryExpansion: advanced.queryExpansion === true,
+		},
+		...(command
+			? {
+					backend: {
+						args: Array.isArray(raw.args)
+							? raw.args.filter(
+									(value): value is string => typeof value === 'string',
+								)
+							: [],
+						command,
+						...(typeof raw.cwd === 'string' && raw.cwd.trim()
+							? { cwd: raw.cwd.trim() }
+							: {}),
+						...(raw.env &&
+						typeof raw.env === 'object' &&
+						!Array.isArray(raw.env)
+							? {
+									env: Object.fromEntries(
+										Object.entries(raw.env).filter(
+											(entry): entry is [string, string] =>
+												typeof entry[1] === 'string',
+										),
+									),
+								}
+							: {}),
+						timeoutMs:
+							typeof raw.timeoutMs === 'number' &&
+							Number.isFinite(raw.timeoutMs)
+								? Math.max(1, Math.floor(raw.timeoutMs))
+								: 5000,
+					},
+				}
+			: {}),
+	};
 }
 
 function removeRedundantEntries(
@@ -163,6 +282,37 @@ function buildContextBlock(
 		.join('\n\n---\n\n');
 
 	return `MemPalace Recall Context\n\n${body}`;
+}
+
+function buildCompactedContextBlock(
+	entries: ContextInjectionEntry[],
+	maxChars: number,
+	maxEntries: number,
+): string | undefined {
+	if (entries.length === 0) {
+		return undefined;
+	}
+
+	const lines: string[] = [];
+	for (const entry of entries.slice(0, maxEntries)) {
+		const excerpt = entry.content
+			.replace(/\s+/g, ' ')
+			.trim()
+			.slice(0, maxChars);
+		lines.push(
+			[
+				`artifactId=${entry.artifactId}`,
+				`classification=${entry.classification}`,
+				`source=${entry.source}`,
+				`updatedAt=${entry.updatedAt}`,
+				`note=${excerpt}`,
+			].join(' | '),
+		);
+	}
+
+	return lines.length === 0
+		? undefined
+		: `Compacted Recall Notes\n\n${lines.map((line) => `- ${line}`).join('\n')}`;
 }
 
 function combineSystemPromptAddition(params: {
@@ -258,6 +408,38 @@ type EngineDependencies = {
 	resolveAgentId?: typeof resolveSessionAgentId;
 };
 
+async function buildDiaryClient(
+	api: OpenClawPluginApi,
+): Promise<ContextEngineDiaryClient | null> {
+	const memoryConfig = resolveMemoryPluginConfig(api);
+	if (!memoryConfig.backend) {
+		return null;
+	}
+	return new ContextEngineDiaryClient(memoryConfig.backend);
+}
+
+function compressDiaryEntry(params: {
+	messages: ContextMessages;
+	selectedArtifactIds: string[];
+	sessionId?: string;
+	toolNames?: string[];
+}): string {
+	const promptExcerpt = extractMessageText(
+		params.messages.findLast((message) => message.role === 'user'),
+	).slice(0, 160);
+	const replyExcerpt = extractMessageText(
+		params.messages.findLast((message) => message.role === 'assistant'),
+	).slice(0, 160);
+
+	return JSON.stringify({
+		promptExcerpt,
+		replyExcerpt,
+		selectedArtifactIds: params.selectedArtifactIds,
+		sessionId: params.sessionId,
+		toolNames: params.toolNames ?? [],
+	});
+}
+
 export function createContextEngine(
 	api: OpenClawPluginApi,
 	config: ResolvedContextEngineMempalacePluginConfig,
@@ -271,6 +453,7 @@ export function createContextEngine(
 		deps.getSearchManager ?? getActiveMemorySearchManager;
 	const listPublicArtifacts =
 		deps.listPublicArtifacts ?? listActiveMemoryPublicArtifacts;
+	const memoryPluginConfig = resolveMemoryPluginConfig(api);
 
 	type AssembleParams = Parameters<ContextEngine['assemble']>[0];
 
@@ -319,6 +502,60 @@ export function createContextEngine(
 				sessionKey: params.sessionKey,
 				tokenBudget: params.tokenBudget,
 			});
+
+			if (!memoryPluginConfig.advanced.agentDiaries || params.isHeartbeat) {
+				return;
+			}
+
+			const agentId = resolveAgentId({
+				config: api.config,
+				...(params.sessionKey
+					? {
+							sessionKey: params.sessionKey,
+						}
+					: {}),
+			});
+			const diaryClient = await buildDiaryClient(api);
+			if (!diaryClient) {
+				appendContextEngineEvidence('engine.afterTurn.diary.skipped', {
+					agentId,
+					reason: 'missing-memory-backend-config',
+					sessionId: params.sessionId,
+				});
+				return;
+			}
+
+			try {
+				const toolNames = params.messages
+					.filter((message) => extractMessageText(message).includes('tool'))
+					.map((message) => message.role);
+				const entry = await diaryClient.appendDiaryEntry({
+					agentId,
+					content: compressDiaryEntry({
+						messages: params.messages,
+						selectedArtifactIds: [],
+						sessionId: params.sessionId,
+						toolNames,
+					}),
+					metadata: {
+						recordKind: 'agent-diary',
+					},
+					sessionId: params.sessionId,
+				});
+				appendContextEngineEvidence('engine.afterTurn.diary.appended', {
+					agentId,
+					entryId: entry.entryId,
+					sessionId: params.sessionId,
+				});
+			} catch (error) {
+				appendContextEngineEvidence('engine.afterTurn.diary.failed', {
+					agentId,
+					error: error instanceof Error ? error.message : String(error),
+					sessionId: params.sessionId,
+				});
+			} finally {
+				await diaryClient.close();
+			}
 		},
 		async assemble(params: AssembleParams) {
 			appendContextEngineEvidence('engine.assemble.start', {
@@ -389,10 +626,6 @@ export function createContextEngine(
 				sessionId: params.sessionId,
 			});
 
-			if (searchResults.length === 0) {
-				return createBaseAssembleResult(params);
-			}
-
 			const catalogEntries = await listPublicArtifacts({
 				cfg: api.config,
 			});
@@ -457,6 +690,73 @@ export function createContextEngine(
 				enrichedEntries.push(entry);
 			}
 
+			const generalRecallWeak =
+				searchResults.length === 0 ||
+				(searchResults[0]?.score ?? 0) < Math.max(0.2, config.minScore);
+			const shouldQueryDiary =
+				memoryPluginConfig.advanced.agentDiaries &&
+				(generalRecallWeak || isDiaryRelevantPrompt(params.prompt));
+
+			if (shouldQueryDiary) {
+				const diaryClient = await buildDiaryClient(api);
+				if (diaryClient) {
+					try {
+						const diaryEntries = await diaryClient.listDiaryEntries({
+							agentId,
+							limit: config.maxEntries,
+							sessionId: params.sessionId,
+						});
+						appendContextEngineEvidence('engine.assemble.diary.query', {
+							agentId,
+							diaryCount: diaryEntries.length,
+							reason: generalRecallWeak ? 'weak-recall' : 'prompt-relevance',
+							sessionId: params.sessionId,
+						});
+						let injectedDiaryCount = 0;
+						for (const diaryEntry of diaryEntries) {
+							if (
+								!diaryEntry.source.startsWith(
+									`${DIARY_SOURCE_PREFIX}${agentId}`,
+								)
+							) {
+								continue;
+							}
+							enrichedEntries.push(
+								parseWithSchema(
+									ContextInjectionEntrySchema,
+									{
+										artifactId: diaryEntry.entryId,
+										classification: 'conversation',
+										content: diaryEntry.content,
+										recency: computeRecency(diaryEntry.updatedAt),
+										score: 0.24,
+										source: diaryEntry.source,
+										sourcePath: diaryEntry.sourcePath,
+										sourceType: 'manual',
+										updatedAt: diaryEntry.updatedAt,
+									},
+									'Invalid diary context injection entry.',
+								),
+							);
+							injectedDiaryCount += 1;
+						}
+						appendContextEngineEvidence('engine.assemble.diary.injected', {
+							agentId,
+							injectedDiaryCount,
+							sessionId: params.sessionId,
+						});
+					} catch (error) {
+						appendContextEngineEvidence('engine.assemble.diary.failed', {
+							agentId,
+							error: error instanceof Error ? error.message : String(error),
+							sessionId: params.sessionId,
+						});
+					} finally {
+						await diaryClient.close();
+					}
+				}
+			}
+
 			const orderedEntries = limitEntriesPerSource(
 				prioritizeNonConversationEntries(
 					removeRedundantEntries(enrichedEntries).sort(compareEntries),
@@ -481,9 +781,38 @@ export function createContextEngine(
 				usedTokens += entryTokens;
 			}
 
-			const contextBlock = buildContextBlock(budgetedEntries);
+			const overflowEntries = orderedEntries.filter(
+				(entry) =>
+					!budgetedEntries.some(
+						(selected) => selected.artifactId === entry.artifactId,
+					),
+			);
+			let compactedBlock: string | undefined;
+			if (overflowEntries.length > 0 && config.compaction.enabled) {
+				compactedBlock = buildCompactedContextBlock(
+					overflowEntries,
+					config.compaction.overflowSummaryMaxChars,
+					config.compaction.maxCompactedEntries,
+				);
+				if (
+					compactedBlock &&
+					'recordContextCompaction' in manager &&
+					typeof manager.recordContextCompaction === 'function'
+				) {
+					manager.recordContextCompaction();
+				}
+				appendContextEngineEvidence('engine.assemble.compaction', {
+					agentId,
+					compactedCount: overflowEntries.length,
+					sessionId: params.sessionId,
+				});
+			}
+			const contextBlock = [buildContextBlock(budgetedEntries), compactedBlock]
+				.filter((value): value is string => Boolean(value))
+				.join('\n\n');
 			appendContextEngineEvidence('engine.assemble.complete', {
 				agentId,
+				compacted: Boolean(compactedBlock),
 				contextBlockGenerated: Boolean(contextBlock),
 				effectiveBudget,
 				selectedArtifactIds: budgetedEntries.map((entry) => entry.artifactId),
@@ -491,7 +820,10 @@ export function createContextEngine(
 				usedTokens,
 			});
 
-			return createBaseAssembleResult(params, contextBlock);
+			return createBaseAssembleResult(
+				params,
+				contextBlock.length > 0 ? contextBlock : undefined,
+			);
 		},
 		async bootstrap(
 			params: Parameters<NonNullable<ContextEngine['bootstrap']>>[0],

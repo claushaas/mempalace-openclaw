@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import {
 	createFingerprint,
+	type KnowledgeGraphUpsertInput,
 	type MemoryArtifact,
 	type MemoryPromoteInput,
 	MemoryPromoteInputSchema,
@@ -212,6 +213,82 @@ function splitContentIntoChunks(content: string): string[] {
 	return chunks.filter((entry) => entry.length > 0);
 }
 
+function parseIsoDate(value: string | undefined): string | undefined {
+	if (!value) {
+		return undefined;
+	}
+	const parsed = Date.parse(value.trim());
+	return Number.isNaN(parsed) ? undefined : new Date(parsed).toISOString();
+}
+
+function extractHeadingEntities(content: string, artifactId: string) {
+	return content
+		.split('\n')
+		.filter((line) => line.trim().startsWith('#'))
+		.map((line) => line.replace(/^#+\s*/, '').trim())
+		.filter(Boolean)
+		.map((name) => ({
+			entityId: `entity-${createFingerprint({ artifactId, name }).slice(0, 12)}`,
+			entityType: 'heading',
+			name,
+			sourceArtifactId: artifactId,
+		}));
+}
+
+function extractCapitalizedEntities(content: string, artifactId: string) {
+	const matches = content.match(/\b[A-Z][a-zA-Z0-9_-]{2,}\b/g) ?? [];
+	const counts = new Map<string, number>();
+	for (const match of matches) {
+		counts.set(match, (counts.get(match) ?? 0) + 1);
+	}
+	return [...counts.entries()]
+		.filter(([, count]) => count >= 2)
+		.map(([name]) => ({
+			entityId: `entity-${createFingerprint({ artifactId, name }).slice(0, 12)}`,
+			entityType: 'token',
+			name,
+			sourceArtifactId: artifactId,
+		}));
+}
+
+function extractExplicitRelations(
+	content: string,
+	artifactId: string,
+	entities: Array<{ entityId: string; name: string }>,
+) {
+	const entityByName = new Map(
+		entities.map((entity) => [entity.name.toLowerCase(), entity.entityId]),
+	);
+	const relations = [];
+	for (const [relationType, pattern] of [
+		['depends-on', /^depends-on:\s*(.+)$/gim],
+		['owner', /^owner:\s*(.+)$/gim],
+		['uses', /^uses:\s*(.+)$/gim],
+		['blocks', /^blocks:\s*(.+)$/gim],
+		['related-to', /^related-to:\s*(.+)$/gim],
+	] as const) {
+		for (const match of content.matchAll(pattern)) {
+			const targetName = match[1]?.trim();
+			if (!targetName) {
+				continue;
+			}
+			const sourceEntityId =
+				entities[0]?.entityId ??
+				`entity-${createFingerprint({ artifactId, relationType }).slice(0, 12)}`;
+			const targetEntityId =
+				entityByName.get(targetName.toLowerCase()) ??
+				`entity-${createFingerprint({ artifactId, relationType, targetName }).slice(0, 12)}`;
+			relations.push({
+				relationType,
+				sourceArtifactId: artifactId,
+				sourceEntityId,
+				targetEntityId,
+			});
+		}
+	}
+	return relations;
+}
+
 export function prepareSourceChunks(params: {
 	content: string;
 	logicalPath: string;
@@ -252,6 +329,69 @@ export function prepareSourceChunks(params: {
 
 export function readSourceCandidateContent(filePath: string): string {
 	return fs.readFileSync(filePath, 'utf8');
+}
+
+export function buildKnowledgeGraphUpsertInput(params: {
+	artifactId: string;
+	chunk: PreparedChunk;
+}): KnowledgeGraphUpsertInput | null {
+	const headingEntities = extractHeadingEntities(
+		params.chunk.content,
+		params.artifactId,
+	);
+	const fileEntity = {
+		entityId: `entity-${createFingerprint({
+			artifactId: params.artifactId,
+			path: params.chunk.sourcePath,
+		}).slice(0, 12)}`,
+		entityType: 'file',
+		name: path.posix
+			.basename(params.chunk.sourcePath)
+			.replace(/#chunk=\d+$/, ''),
+		sourceArtifactId: params.artifactId,
+	};
+	const capitalizedEntities = extractCapitalizedEntities(
+		params.chunk.content,
+		params.artifactId,
+	);
+	const entities = [fileEntity, ...headingEntities, ...capitalizedEntities];
+	const uniqueEntities = [
+		...new Map(entities.map((entity) => [entity.entityId, entity])).values(),
+	];
+	const relations = extractExplicitRelations(
+		params.chunk.content,
+		params.artifactId,
+		uniqueEntities,
+	);
+
+	const validFromMatch = params.chunk.content.match(/^validFrom:\s*(.+)$/im);
+	const validToMatch = params.chunk.content.match(/^validTo:\s*(.+)$/im);
+	const effectiveMatch = params.chunk.content.match(/^effective:\s*(.+)$/im);
+	const validFrom = parseIsoDate(validFromMatch?.[1] ?? effectiveMatch?.[1]);
+	const validTo = parseIsoDate(validToMatch?.[1]);
+	const validity = {
+		...(validFrom ? { validFrom } : {}),
+		...(validTo ? { validTo } : {}),
+	};
+
+	const normalizedEntities = uniqueEntities.map((entity) => ({
+		...entity,
+		...validity,
+	}));
+	const normalizedRelations = relations.map((relation) => ({
+		...relation,
+		...validity,
+	}));
+
+	if (normalizedEntities.length === 0 && normalizedRelations.length === 0) {
+		return null;
+	}
+
+	return {
+		entities: normalizedEntities,
+		relations: normalizedRelations,
+		sourceArtifactId: params.artifactId,
+	};
 }
 
 export function buildPromoteInput(

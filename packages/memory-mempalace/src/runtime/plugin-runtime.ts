@@ -79,6 +79,8 @@ export class MemoryPluginRuntimeAdapter implements MemoryPluginRuntime {
 		try {
 			const client = new McpStdioMemPalaceClient(config);
 			const service = new MemoryRuntimeService(client, {
+				advanced: config.advanced,
+				agentId: params.agentId,
 				onArtifactRecorded: (artifact) => {
 					this.artifactStore.writeArtifact(artifact);
 				},

@@ -10,6 +10,14 @@ const shimPath = new URL(
 describe('McpStdioMemPalaceClient', () => {
 	it('searches, gets artifacts and reads status over MCP stdio', async () => {
 		const client = new McpStdioMemPalaceClient({
+			advanced: {
+				agentDiaries: false,
+				knowledgeGraph: false,
+				lowConfidenceScoreThreshold: 0.45,
+				maxExpandedTerms: 5,
+				pinnedMemory: false,
+				queryExpansion: false,
+			},
 			args: [shimPath.pathname],
 			command: process.execPath,
 			defaultResultLimit: 8,

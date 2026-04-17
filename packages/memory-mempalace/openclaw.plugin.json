@@ -2,6 +2,32 @@
 	"configSchema": {
 		"additionalProperties": false,
 		"properties": {
+			"advanced": {
+				"additionalProperties": false,
+				"properties": {
+					"agentDiaries": {
+						"type": "boolean"
+					},
+					"knowledgeGraph": {
+						"type": "boolean"
+					},
+					"lowConfidenceScoreThreshold": {
+						"minimum": 0,
+						"type": "number"
+					},
+					"maxExpandedTerms": {
+						"minimum": 1,
+						"type": "integer"
+					},
+					"pinnedMemory": {
+						"type": "boolean"
+					},
+					"queryExpansion": {
+						"type": "boolean"
+					}
+				},
+				"type": "object"
+			},
 			"args": {
 				"items": {
 					"type": "string"

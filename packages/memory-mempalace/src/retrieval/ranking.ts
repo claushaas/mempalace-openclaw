@@ -4,7 +4,8 @@ import type {
 	SessionClassification,
 } from '@mempalace-openclaw/shared';
 
-export const RANKING_PROFILE = 'v2';
+export const DEFAULT_RANKING_PROFILE = 'v2';
+export type RankingProfile = 'v2' | 'v3';
 
 const CLASSIFICATION_PRIORITY_BOOST: Record<SessionClassification, number> = {
 	artifact: 0.02,
@@ -14,7 +15,10 @@ const CLASSIFICATION_PRIORITY_BOOST: Record<SessionClassification, number> = {
 	problem: 0.05,
 };
 
-const PINNED_MEMORY_WEIGHT = 0;
+const PINNED_MEMORY_WEIGHT = {
+	agent: 0.14,
+	global: 0.18,
+} as const;
 
 function computeRecencyBoost(updatedAt: string): number {
 	const ageMs = Date.now() - Date.parse(updatedAt);
@@ -114,10 +118,47 @@ export function computeKeywordBoost(
 	return matches === 0 ? 0 : matches / tokens.length / 5;
 }
 
+function computePinnedMemoryBoost(
+	result: MemorySearchResult,
+	options: {
+		agentId?: string;
+		enabled?: boolean;
+		profile: RankingProfile;
+	},
+): number {
+	if (!options.enabled || options.profile !== 'v3') {
+		return 0;
+	}
+
+	if (result.metadata?.pinned !== true) {
+		return 0;
+	}
+
+	const pinScope = result.metadata.pinScope === 'agent' ? 'agent' : 'global';
+	if (pinScope === 'agent') {
+		const pinnedAgentId =
+			typeof result.metadata.pinnedAgentId === 'string'
+				? result.metadata.pinnedAgentId
+				: undefined;
+		if (pinnedAgentId && options.agentId && pinnedAgentId !== options.agentId) {
+			return 0;
+		}
+		return PINNED_MEMORY_WEIGHT.agent;
+	}
+
+	return PINNED_MEMORY_WEIGHT.global;
+}
+
 export function computeRankedScore(
 	query: MemorySearchQuery,
 	result: MemorySearchResult,
+	options: {
+		agentId?: string;
+		pinnedMemory?: boolean;
+		profile?: RankingProfile;
+	} = {},
 ): number {
+	const profile = options.profile ?? DEFAULT_RANKING_PROFILE;
 	return (
 		result.score +
 		computeRecencyBoost(result.updatedAt) +
@@ -125,6 +166,12 @@ export function computeRankedScore(
 		computeStructuralBoost(query, result) +
 		CLASSIFICATION_PRIORITY_BOOST[result.classification] +
 		computeKeywordBoost(query, result) +
-		PINNED_MEMORY_WEIGHT
+		computePinnedMemoryBoost(result, {
+			...(options.agentId ? { agentId: options.agentId } : {}),
+			...(options.pinnedMemory !== undefined
+				? { enabled: options.pinnedMemory }
+				: {}),
+			profile,
+		})
 	);
 }

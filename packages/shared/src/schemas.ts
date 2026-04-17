@@ -110,11 +110,22 @@ export type MemoryStatusCache = z.infer<typeof MemoryStatusCacheSchema>;
 
 export const MemoryStatusDiagnosticsSchema = z
 	.object({
+		advancedCapabilities: z
+			.object({
+				agentDiaries: z.enum(['enabled', 'unavailable', 'disabled']),
+				knowledgeGraph: z.enum(['enabled', 'unavailable', 'disabled']),
+				pinnedMemory: z.enum(['enabled', 'disabled']),
+				queryExpansion: z.enum(['enabled', 'unavailable', 'disabled']),
+			})
+			.strict()
+			.optional(),
+		cacheEvictions: z.number().int().nonnegative().optional(),
+		contextCompactions: z.number().int().nonnegative().optional(),
 		duplicateResultsCollapsed: z.number().int().nonnegative(),
 		keywordFallbackApplied: z.boolean(),
 		lastRefreshLatencyMs: z.number().nonnegative().optional(),
 		lastSearchLatencyMs: z.number().nonnegative().optional(),
-		rankingProfile: z.literal('v2'),
+		rankingProfile: z.enum(['v2', 'v3']),
 	})
 	.strict();
 export type MemoryStatusDiagnostics = z.infer<
@@ -150,6 +161,7 @@ export const MemorySearchResultSchema = z
 		classification: SessionClassificationSchema,
 		hall: nonEmptyStringSchema.optional(),
 		memoryType: MemoryTypeSchema.optional(),
+		metadata: z.record(z.string(), JsonValueSchema).optional(),
 		retrievalReason: nonEmptyStringSchema.optional(),
 		room: nonEmptyStringSchema.optional(),
 		score: z.number().finite(),
@@ -171,6 +183,7 @@ export const MemoryArtifactSchema = z
 		content: z.string(),
 		hall: nonEmptyStringSchema.optional(),
 		memoryType: MemoryTypeSchema.optional(),
+		metadata: z.record(z.string(), JsonValueSchema).optional(),
 		room: nonEmptyStringSchema.optional(),
 		sessionId: nonEmptyStringSchema.optional(),
 		source: nonEmptyStringSchema,
@@ -230,6 +243,90 @@ export const MemoryIndexRequestSchema = z
 	})
 	.strict();
 export type MemoryIndexRequest = z.infer<typeof MemoryIndexRequestSchema>;
+
+export const KnowledgeGraphEntitySchema = z
+	.object({
+		entityId: nonEmptyStringSchema,
+		entityType: nonEmptyStringSchema,
+		name: nonEmptyStringSchema,
+		sourceArtifactId: nonEmptyStringSchema.optional(),
+		validFrom: isoDatetimeStringSchema.optional(),
+		validTo: isoDatetimeStringSchema.optional(),
+	})
+	.strict();
+export type KnowledgeGraphEntity = z.infer<typeof KnowledgeGraphEntitySchema>;
+
+export const KnowledgeGraphRelationSchema = z
+	.object({
+		relationType: nonEmptyStringSchema,
+		sourceArtifactId: nonEmptyStringSchema.optional(),
+		sourceEntityId: nonEmptyStringSchema,
+		targetEntityId: nonEmptyStringSchema,
+		validFrom: isoDatetimeStringSchema.optional(),
+		validTo: isoDatetimeStringSchema.optional(),
+	})
+	.strict();
+export type KnowledgeGraphRelation = z.infer<
+	typeof KnowledgeGraphRelationSchema
+>;
+
+export const KnowledgeGraphUpsertInputSchema = z
+	.object({
+		entities: z.array(KnowledgeGraphEntitySchema),
+		relations: z.array(KnowledgeGraphRelationSchema),
+		sourceArtifactId: nonEmptyStringSchema.optional(),
+	})
+	.strict();
+export type KnowledgeGraphUpsertInput = z.infer<
+	typeof KnowledgeGraphUpsertInputSchema
+>;
+
+export const KnowledgeGraphExpansionResultSchema = z
+	.object({
+		expandedTerms: z.array(nonEmptyStringSchema),
+		reason: nonEmptyStringSchema,
+	})
+	.strict();
+export type KnowledgeGraphExpansionResult = z.infer<
+	typeof KnowledgeGraphExpansionResultSchema
+>;
+
+export const AgentDiaryEntrySchema = z
+	.object({
+		agentId: nonEmptyStringSchema,
+		content: z.string(),
+		entryId: nonEmptyStringSchema,
+		metadata: z.record(z.string(), JsonValueSchema).optional(),
+		sessionId: nonEmptyStringSchema.optional(),
+		source: nonEmptyStringSchema,
+		sourcePath: nonEmptyStringSchema,
+		subagentId: nonEmptyStringSchema.optional(),
+		updatedAt: isoDatetimeStringSchema,
+	})
+	.strict();
+export type AgentDiaryEntry = z.infer<typeof AgentDiaryEntrySchema>;
+
+export const AgentDiaryAppendInputSchema = z
+	.object({
+		agentId: nonEmptyStringSchema,
+		content: z.string(),
+		entryId: nonEmptyStringSchema.optional(),
+		metadata: z.record(z.string(), JsonValueSchema).optional(),
+		sessionId: nonEmptyStringSchema.optional(),
+		subagentId: nonEmptyStringSchema.optional(),
+	})
+	.strict();
+export type AgentDiaryAppendInput = z.infer<typeof AgentDiaryAppendInputSchema>;
+
+export const AgentDiaryQuerySchema = z
+	.object({
+		agentId: nonEmptyStringSchema,
+		limit: z.number().int().positive().optional(),
+		sessionId: nonEmptyStringSchema.optional(),
+		subagentId: nonEmptyStringSchema.optional(),
+	})
+	.strict();
+export type AgentDiaryQuery = z.infer<typeof AgentDiaryQuerySchema>;
 
 export const SyncJobSchema = z
 	.object({

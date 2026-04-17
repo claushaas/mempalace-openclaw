@@ -70,13 +70,36 @@ function applyModeConfig(config, mode, providerBaseUrl) {
 	};
 	config.plugins.slots.memory = MEMORY_MEMPALACE_ID;
 
+	if (mode === 'advanced') {
+		config.plugins.entries[MEMORY_MEMPALACE_ID].config = {
+			...buildMemoryPluginConfig(),
+			advanced: {
+				agentDiaries: true,
+				knowledgeGraph: true,
+				lowConfidenceScoreThreshold: 0.85,
+				maxExpandedTerms: 5,
+				pinnedMemory: true,
+				queryExpansion: true,
+			},
+		};
+	}
+
 	if (mode !== 'memory-only') {
 		config.plugins.entries[CONTEXT_ENGINE_MEMPALACE_ID] = {
 			config: {
+				...(mode === 'advanced'
+					? {
+							compaction: {
+								enabled: true,
+								maxCompactedEntries: 4,
+								overflowSummaryMaxChars: 160,
+							},
+						}
+					: {}),
 				includeMemoryPromptAddition: true,
 				maxArtifactLines: 40,
-				maxContextTokens: 1200,
-				maxEntries: 6,
+				maxContextTokens: mode === 'advanced' ? 320 : 1200,
+				maxEntries: mode === 'advanced' ? 8 : 6,
 				minScore: 0.15,
 			},
 			enabled: true,
@@ -134,6 +157,19 @@ function seedMemory() {
 				MEMPALACE_SEED_MEMORY_TYPE: 'facts',
 				MEMPALACE_SEED_SOURCE: 'qa-memory',
 				MEMPALACE_SEED_SOURCE_PATH: '/memory/qa-snack.md',
+			}),
+		},
+	);
+}
+
+function seedMemoryArtifact(overrides = {}) {
+	return runCommand(
+		'pnpm',
+		['exec', 'tsx', './scripts/host-real/seed-mempalace.mts'],
+		{
+			env: hostEnv({
+				MEMPALACE_MCP_SHIM_STATE_PATH,
+				...overrides,
 			}),
 		},
 	);
@@ -250,7 +286,92 @@ export async function runModeScenario(params) {
 		const gatewayProbe = runGatewayProbe();
 
 		seedMemory();
-		const agentRun = runAgentPrompt();
+		if (mode === 'advanced') {
+			seedMemoryArtifact({
+				MEMPALACE_SEED_ARTIFACT_ID: 'artifact-advanced-pinned',
+				MEMPALACE_SEED_CLASSIFICATION: 'decision',
+				MEMPALACE_SEED_CONTENT:
+					'Cinema preference note: lemon pepper wings with blue cheese are the QA movie night default.',
+				MEMPALACE_SEED_MEMORY_TYPE: 'facts',
+				MEMPALACE_SEED_METADATA_JSON: JSON.stringify({
+					pinned: true,
+					pinScope: 'global',
+				}),
+				MEMPALACE_SEED_SOURCE: 'advanced-memory',
+				MEMPALACE_SEED_SOURCE_PATH: '/memory/cinema-preference.md',
+			});
+			for (const [index, classification] of [
+				'conversation',
+				'artifact',
+				'conversation',
+				'artifact',
+			].entries()) {
+				seedMemoryArtifact({
+					MEMPALACE_SEED_ARTIFACT_ID: `artifact-advanced-overflow-${index + 1}`,
+					MEMPALACE_SEED_CLASSIFICATION: classification,
+					MEMPALACE_SEED_CONTENT: `Overflow context ${index + 1}: additional QA memory block for compaction coverage.`,
+					MEMPALACE_SEED_MEMORY_TYPE:
+						classification === 'conversation' ? 'events' : 'discoveries',
+					MEMPALACE_SEED_SOURCE: `overflow-${index + 1}`,
+					MEMPALACE_SEED_SOURCE_PATH: `/memory/overflow-${index + 1}.md`,
+				});
+			}
+		}
+		const firstPrompt =
+			mode === 'advanced'
+				? 'Diary bootstrap note: remember that I mentioned the QA cinema preference. Reply briefly.'
+				: PROMPT;
+		const secondPrompt =
+			mode === 'advanced'
+				? 'For tonight\'s cinema outing, what should I probably order there again for the usual QA thing?'
+				: undefined;
+		const thirdPrompt =
+			mode === 'advanced'
+				? 'Silent diary recall check: what food preference did I mention earlier today?'
+				: undefined;
+		const firstAgentRun = runOpenClaw([
+			'agent',
+			'--local',
+			'--json',
+			'--message',
+			firstPrompt,
+			'--thinking',
+			'off',
+			'--timeout',
+			'45',
+			'--to',
+			TARGET_NUMBER,
+		]);
+		const secondAgentRun = secondPrompt
+			? runOpenClaw([
+					'agent',
+					'--local',
+					'--json',
+					'--message',
+					secondPrompt,
+					'--thinking',
+					'off',
+					'--timeout',
+					'45',
+					'--to',
+					TARGET_NUMBER,
+				])
+			: firstAgentRun;
+		const agentRun = thirdPrompt
+			? runOpenClaw([
+					'agent',
+					'--local',
+					'--json',
+					'--message',
+					thirdPrompt,
+					'--thinking',
+					'off',
+					'--timeout',
+					'45',
+					'--to',
+					TARGET_NUMBER,
+				])
+			: secondAgentRun;
 		const agentOutput = parseJsonOutput(agentRun.stdout || agentRun.stderr);
 		const providerRequests = readJsonLines(MOCK_OPENAI_REQUEST_LOG_PATH);
 		const replyText =
@@ -280,6 +401,10 @@ export async function runModeScenario(params) {
 			},
 			agentOutput,
 			agentRun: {
+				firstStderr: firstAgentRun.stderr,
+				firstStdout: firstAgentRun.stdout,
+				secondStderr: secondAgentRun.stderr,
+				secondStdout: secondAgentRun.stdout,
 				stderr: agentRun.stderr,
 				stdout: agentRun.stdout,
 			},
@@ -329,6 +454,42 @@ export async function runModeScenario(params) {
 				: [
 						'Smoke test do modo recommended: boot do runtime de memória e do context engine com provider mock local.',
 					];
+		} else if (mode === 'advanced') {
+			const expansionObserved = report.memoryEvidence.some(
+				(entry) =>
+					entry.event === 'manager.search' &&
+					entry.payload?.expansionApplied === true,
+			);
+			const pinnedPriorityObserved = report.contextEvidence.some(
+				(entry) =>
+					entry.event === 'engine.assemble.complete' &&
+					Array.isArray(entry.payload?.selectedArtifactIds) &&
+					entry.payload.selectedArtifactIds[0] === 'artifact-advanced-pinned',
+			);
+			const diaryObserved = report.contextEvidence.some(
+				(entry) =>
+					entry.event === 'engine.assemble.diary.injected' &&
+					typeof entry.payload?.injectedDiaryCount === 'number' &&
+					entry.payload.injectedDiaryCount > 0,
+			);
+			const compactionObserved = report.contextEvidence.some(
+				(entry) =>
+					entry.event === 'engine.assemble.compaction' &&
+					typeof entry.payload?.compactedCount === 'number' &&
+					entry.payload.compactedCount > 0,
+			);
+			report.statusClassification =
+				report.replyContainsNeedle &&
+				expansionObserved &&
+				pinnedPriorityObserved &&
+				diaryObserved &&
+				compactionObserved
+					? 'validated'
+					: 'blocked';
+			report.statusNotes = [
+				'Este harness valida as extensões opcionais da Etapa 8 com shim local: query expansion, pinned memory, diary e compaction transitória.',
+				'Ele não altera o contrato v1; apenas verifica que o runtime permanece funcional com as flags avançadas habilitadas.',
+			];
 		} else {
 			report.statusClassification = requireRecall
 				? classifyFullRecall(report)

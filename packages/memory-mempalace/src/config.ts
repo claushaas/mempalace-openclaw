@@ -10,6 +10,24 @@ import { z } from 'zod';
 export const memoryMempalacePluginConfigJsonSchema = {
 	additionalProperties: false,
 	properties: {
+		advanced: {
+			additionalProperties: false,
+			properties: {
+				agentDiaries: { type: 'boolean' },
+				knowledgeGraph: { type: 'boolean' },
+				lowConfidenceScoreThreshold: {
+					minimum: 0,
+					type: 'number',
+				},
+				maxExpandedTerms: {
+					minimum: 1,
+					type: 'integer',
+				},
+				pinnedMemory: { type: 'boolean' },
+				queryExpansion: { type: 'boolean' },
+			},
+			type: 'object',
+		},
 		args: {
 			items: {
 				type: 'string',
@@ -52,8 +70,22 @@ export const memoryMempalacePluginConfigJsonSchema = {
 
 const nonEmptyStringSchema = z.string().min(1);
 
+const AdvancedMemoryFeaturesSchema = z
+	.object({
+		agentDiaries: z.boolean().default(false),
+		knowledgeGraph: z.boolean().default(false),
+		lowConfidenceScoreThreshold: z.number().min(0).default(0.45),
+		maxExpandedTerms: z.number().int().positive().default(5),
+		pinnedMemory: z.boolean().default(false),
+		queryExpansion: z.boolean().default(false),
+	})
+	.strict();
+
 export const MemoryMempalacePluginConfigSchema = z
 	.object({
+		advanced: AdvancedMemoryFeaturesSchema.default(() =>
+			AdvancedMemoryFeaturesSchema.parse({}),
+		),
 		args: z.array(nonEmptyStringSchema).optional(),
 		command: nonEmptyStringSchema.optional(),
 		cwd: nonEmptyStringSchema.optional(),
@@ -71,6 +103,10 @@ export const memoryMempalacePluginConfigSchema = buildPluginConfigSchema(
 
 export type MemoryMempalacePluginConfig = z.infer<
 	typeof MemoryMempalacePluginConfigSchema
+>;
+
+export type ResolvedMemoryMempalaceAdvancedConfig = z.infer<
+	typeof AdvancedMemoryFeaturesSchema
 >;
 
 export type ResolvedMemoryMempalacePluginConfig = Required<
@@ -116,6 +152,9 @@ export function parseMemoryMempalacePluginConfig(
 	return {
 		...DEFAULT_CONFIG_VALUES,
 		...parsed,
+		advanced: {
+			...AdvancedMemoryFeaturesSchema.parse(parsed.advanced ?? {}),
+		},
 	};
 }
 
