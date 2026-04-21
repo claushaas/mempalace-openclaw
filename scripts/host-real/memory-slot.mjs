@@ -45,7 +45,7 @@ const report = buildBaseReport('host-real:memory-slot', {
 			? 'validated'
 			: 'blocked',
 	statusNotes: [
-		'On openclaw@2026.4.14, selecting an external memory slot disables the bundled memory-core plugin.',
+		'On openclaw@2026.4.15, selecting an external memory slot disables the bundled memory-core plugin.',
 		'Because memory-core owns the root `openclaw memory` CLI tree, the harness validates slot selection through plugin inspection plus gateway bootstrap, not through the built-in memory CLI.'
 	]
 });

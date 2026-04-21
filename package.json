@@ -12,6 +12,7 @@
 		"build": "pnpm -r --if-present build",
 		"test": "vitest run --passWithNoTests",
 		"setup": "bash ./scripts/setup.sh",
+		"openclaw:install-local-package": "node ./scripts/openclaw/install-local-package.mjs",
 		"lint": "pnpm lint:fix",
 		"lint:check": "biome check",
 		"lint:fix": "biome check --unsafe --write",
@@ -46,7 +47,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.12",
 		"@types/node": "^25.6.0",
-		"openclaw": "2026.4.14",
+		"openclaw": "2026.4.15",
 		"tsx": "^4.21.0",
 		"tsup": "^8.5.1",
 		"typescript": "^6.0.2",

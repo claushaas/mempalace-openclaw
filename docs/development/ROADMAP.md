@@ -344,7 +344,7 @@ Eliminar o principal risco do projeto antes da implementação profunda: descobr
 
 ### Implementação
 
-1. Pinar `openclaw@2026.4.14` no repositório como host canônico da Etapa 0A.
+1. Pinar `openclaw@2026.4.15` no repositório como host canônico da Etapa 0A.
 2. Criar dois probes mínimos, explicitamente fora do produto:
    - `fixtures/host-real/probe-memory-slot`
    - `fixtures/host-real/probe-context-engine-slot`
@@ -380,15 +380,15 @@ Eliminar o principal risco do projeto antes da implementação profunda: descobr
 
 ### Implementação Concretizada na Etapa 0A
 
-- O host canônico foi pinado em `package.json` como `openclaw@2026.4.14`.
+- O host canônico foi pinado em `package.json` como `openclaw@2026.4.15`.
 - Os probes vivem em `fixtures/host-real/` e usam os ids:
   - `probe-memory-slot`
   - `probe-context-engine-slot`
 - Os harnesses reais vivem em `scripts/host-real/`.
 - O bootstrap isolado do host é feito via `openclaw onboard --non-interactive --accept-risk ...` com `OPENCLAW_STATE_DIR` e `OPENCLAW_CONFIG_PATH` apontando para `.tmp/openclaw-host/`.
 - As evidências temporárias são gravadas em `.tmp/host-real-results/`.
-- `Active Memory` nesta etapa usa o plugin bundled `active-memory` do próprio host-alvo. Não existe probe separado porque o objetivo aqui é validar o seam real da versão `2026.4.14`, não simular o comportamento do plugin oficial.
-- Descoberta host-real relevante: em `openclaw@2026.4.14`, selecionar um memory slot externo desativa `memory-core`; portanto a árvore CLI `openclaw memory` não é um oráculo válido para a Etapa 0A quando o slot `memory` aponta para um plugin externo.
+- `Active Memory` nesta etapa usa o plugin bundled `active-memory` do próprio host-alvo. Não existe probe separado porque o objetivo aqui é validar o seam real da versão `2026.4.15`, não simular o comportamento do plugin oficial.
+- Descoberta host-real relevante: em `openclaw@2026.4.15`, selecionar um memory slot externo desativa `memory-core`; portanto a árvore CLI `openclaw memory` não é um oráculo válido para a Etapa 0A quando o slot `memory` aponta para um plugin externo.
 
 ### Critérios de Aceite
 
@@ -401,7 +401,7 @@ Eliminar o principal risco do projeto antes da implementação profunda: descobr
 
 ### Estado Atual da Etapa 0A
 
-- `openclaw@2026.4.14` pinado e executável via scripts do repositório.
+- `openclaw@2026.4.15` pinado e executável via scripts do repositório.
 - manifest dos dois probes validado em host real.
 - slot de memória validado por seleção explícita do slot, inspeção do plugin e bootstrap do gateway com o probe ativo.
 - slot de context engine validado por registro real do engine e bootstrap do gateway com o slot configurado.
@@ -769,7 +769,7 @@ Resultado materializado desta etapa:
 - `pnpm host-real:smoke:recommended` validado;
 - `pnpm host-real:recommended-recall` validado como prova canônica de recall automático;
 - `pnpm host-real:smoke:full` validado;
-- `pnpm host-real:full-recall` classificado como `partially_validated`, mantendo o status preciso do Active Memory em `openclaw@2026.4.14`.
+- `pnpm host-real:full-recall` classificado como `partially_validated`, mantendo o status preciso do Active Memory em `openclaw@2026.4.15`.
 
 ### Dependências
 

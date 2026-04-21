@@ -80,31 +80,36 @@ function runCommand(
 	return result.stdout;
 }
 
-function withTemporarilyDetachedNodeModules(
-	pluginDir: string,
-	callback: () => void,
-) {
-	const nodeModulesPath = path.join(pluginDir, 'node_modules');
-	if (!fs.existsSync(nodeModulesPath)) {
-		callback();
+function copyInstallablePackage(sourceDir: string, destinationDir: string) {
+	fs.cpSync(sourceDir, destinationDir, {
+		filter: (entry) => {
+			const baseName = path.basename(entry);
+			return baseName !== 'node_modules' && baseName !== '.vite';
+		},
+		force: true,
+		recursive: true,
+	});
+
+	const sourceNodeModules = path.join(sourceDir, 'node_modules');
+	if (!fs.existsSync(sourceNodeModules)) {
 		return;
 	}
 
-	const stashRoot = path.join(ROOT_DIR, '.tmp', 'detached-node-modules');
-	fs.mkdirSync(stashRoot, { recursive: true });
-	const stashPath = path.join(
-		stashRoot,
-		`${path.basename(pluginDir)}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-	);
-	fs.renameSync(nodeModulesPath, stashPath);
+	fs.cpSync(sourceNodeModules, path.join(destinationDir, 'node_modules'), {
+		dereference: true,
+		filter: (entry) => path.basename(entry) !== '.vite',
+		force: true,
+		recursive: true,
+	});
+}
 
-	try {
-		callback();
-	} finally {
-		if (fs.existsSync(stashPath)) {
-			fs.renameSync(stashPath, nodeModulesPath);
-		}
-	}
+function stagePluginForValidation(pluginDir: string, tempRoot: string): string {
+	const stageRoot = path.join(tempRoot, 'linked-packages');
+	const stageDir = path.join(stageRoot, path.basename(pluginDir));
+	fs.mkdirSync(stageRoot, { recursive: true });
+	fs.rmSync(stageDir, { force: true, recursive: true });
+	copyInstallablePackage(pluginDir, stageDir);
+	return stageDir;
 }
 
 function validateJsonFile(filePath: string): ValidationResult {
@@ -209,37 +214,41 @@ function createValidationHost(exampleFile: string) {
 		{ env },
 	);
 
-	withTemporarilyDetachedNodeModules(MEMORY_PLUGIN_DIR, () => {
-		runCommand(
-			'pnpm',
-			[
-				'exec',
-				'openclaw',
-				'plugins',
-				'install',
-				'--link',
-				'--dangerously-force-unsafe-install',
-				MEMORY_PLUGIN_DIR,
-			],
-			{ env },
-		);
-	});
+	const stagedMemoryPluginDir = stagePluginForValidation(
+		MEMORY_PLUGIN_DIR,
+		tempRoot,
+	);
+	runCommand(
+		'pnpm',
+		[
+			'exec',
+			'openclaw',
+			'plugins',
+			'install',
+			'--link',
+			'--dangerously-force-unsafe-install',
+			stagedMemoryPluginDir,
+		],
+		{ env },
+	);
 
-	withTemporarilyDetachedNodeModules(CONTEXT_PLUGIN_DIR, () => {
-		runCommand(
-			'pnpm',
-			[
-				'exec',
-				'openclaw',
-				'plugins',
-				'install',
-				'--link',
-				'--dangerously-force-unsafe-install',
-				CONTEXT_PLUGIN_DIR,
-			],
-			{ env },
-		);
-	});
+	const stagedContextPluginDir = stagePluginForValidation(
+		CONTEXT_PLUGIN_DIR,
+		tempRoot,
+	);
+	runCommand(
+		'pnpm',
+		[
+			'exec',
+			'openclaw',
+			'plugins',
+			'install',
+			'--link',
+			'--dangerously-force-unsafe-install',
+			stagedContextPluginDir,
+		],
+		{ env },
+	);
 
 	const onboardConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 	const exampleConfig = JSON.parse(fs.readFileSync(exampleFile, 'utf8'));

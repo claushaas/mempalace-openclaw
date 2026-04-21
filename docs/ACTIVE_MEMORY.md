@@ -21,7 +21,7 @@ Regra arquitetural:
 
 Versão canônica:
 
-- `openclaw@2026.4.14`
+- `openclaw@2026.4.15`
 
 Surface validada:
 
@@ -50,7 +50,7 @@ Enablement alvo:
 - usar o modo `full` com `memory-mempalace` e `claw-context-mempalace`;
 - validar o comportamento por harness observável, não apenas por bootstrap.
 
-Estado atual do enablement em `openclaw@2026.4.14`:
+Estado atual do enablement em `openclaw@2026.4.15`:
 
 - `plugins.entries.active-memory.enabled = true` funciona;
 - `plugins.entries.active-memory.config.enabled = true` funciona;
@@ -79,7 +79,7 @@ Estado atual do enablement em `openclaw@2026.4.14`:
 
 ## Limitações da Versão-Alvo
 
-- em `2026.4.14`, a surface existe, aceita configuração e inicializa no modo `full`.
+- em `2026.4.15`, a surface existe, aceita configuração e inicializa no modo `full`.
 - o harness `pnpm host-real:full-recall` devolve resposta final correta, mas a evidência disponível continua vindo do `claw-context-mempalace`; o transcript esperado de `active-memory` com `memory_search` + `memory_get` antes da resposta principal não apareceu.
 - por isso, o status correto permanece `partially_validated`.
 

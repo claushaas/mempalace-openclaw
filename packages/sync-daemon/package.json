@@ -25,7 +25,7 @@
 		"@mempalace-openclaw/shared": "workspace:*",
 		"better-sqlite3": "^12.4.1",
 		"fast-glob": "^3.3.3",
-		"openclaw": "2026.4.14"
+		"openclaw": "2026.4.15"
 	},
 	"devDependencies": {
 		"@types/better-sqlite3": "^7.6.13"

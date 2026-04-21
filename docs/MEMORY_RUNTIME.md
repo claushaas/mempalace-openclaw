@@ -208,7 +208,7 @@ Regras:
 
 Descoberta host-real já validada:
 
-- em `openclaw@2026.4.14`, selecionar um memory slot externo desativa `memory-core`;
+- em `openclaw@2026.4.15`, selecionar um memory slot externo desativa `memory-core`;
 - como `memory-core` controla a árvore CLI `openclaw memory`, essa CLI não é o contrato de prova para um plugin externo de memória nessa versão-alvo.
 
 Consequência prática:

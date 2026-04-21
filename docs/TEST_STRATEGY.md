@@ -106,7 +106,7 @@ Os harnesses com probes não contam como prova da integração final `memory-mem
 
 Todos usam:
 
-- versão pinada `openclaw@2026.4.14`
+- versão pinada `openclaw@2026.4.15`
 - ambiente isolado em `.tmp/openclaw-host/`
 - relatórios temporários em `.tmp/host-real-results/`
 - probes rastreados em `fixtures/host-real/`
@@ -159,7 +159,7 @@ Artefatos:
 
 Observação host-real:
 
-- em `openclaw@2026.4.14`, selecionar um plugin externo para o slot `memory` desativa `memory-core`;
+- em `openclaw@2026.4.15`, selecionar um plugin externo para o slot `memory` desativa `memory-core`;
 - por consequência, a árvore CLI `openclaw memory` some nesse modo e não é um harness utilizável para validar um memory slot externo.
 
 ### 3.4 `pnpm host-real:context-slot`
@@ -180,7 +180,7 @@ Artefatos:
 Prova:
 
 - a chave `plugins.entries.active-memory` existe e é aceita pela versão-alvo;
-- o plugin bundled `active-memory` está presente em `openclaw@2026.4.14`;
+- o plugin bundled `active-memory` está presente em `openclaw@2026.4.15`;
 - o gateway aceita subir com essa superfície habilitada.
 
 Classificação atual:

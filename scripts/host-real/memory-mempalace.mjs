@@ -64,7 +64,7 @@ const report = buildBaseReport('host-real:memory-mempalace', {
 	statusNotes: [
 		'This harness validates the final memory-mempalace package, not the Etapa 0A probe.',
 		'The backend seam is exercised through a local MemPalace MCP stdio shim, not a production MemPalace instance.',
-		'Because openclaw@2026.4.14 disables memory-core when an external memory slot is selected, gateway bootstrap plus plugin inspection remain the canonical acceptance signals.',
+		'Because openclaw@2026.4.15 disables memory-core when an external memory slot is selected, gateway bootstrap plus plugin inspection remain the canonical acceptance signals.',
 	],
 });
 

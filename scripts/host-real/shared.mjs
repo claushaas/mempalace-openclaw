@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT_DIR = path.resolve(__dirname, '../..');
-export const OPENCLAW_VERSION = '2026.4.14';
+export const OPENCLAW_VERSION = '2026.4.15';
 export const HOST_ROOT_DIR = path.join(ROOT_DIR, '.tmp', 'openclaw-host');
 export const RESULTS_DIR = path.join(ROOT_DIR, '.tmp', 'host-real-results');
 export const HOST_STATE_DIR = path.join(HOST_ROOT_DIR, 'state');
@@ -72,38 +72,39 @@ export function ensureDir(dirPath) {
 }
 
 export async function withTemporarilyDetachedNodeModules(pluginDir, callback) {
-	const nodeModulesPath = path.join(pluginDir, 'node_modules');
-	if (!fs.existsSync(nodeModulesPath)) {
-		return callback();
+	return callback();
+}
+
+function copyInstallablePackage(sourceDir, destinationDir) {
+	fs.cpSync(sourceDir, destinationDir, {
+		force: true,
+		filter: (entry) => {
+			const baseName = path.basename(entry);
+			return baseName !== 'node_modules' && baseName !== '.vite';
+		},
+		recursive: true,
+	});
+
+	const sourceNodeModules = path.join(sourceDir, 'node_modules');
+	if (!fs.existsSync(sourceNodeModules)) {
+		return;
 	}
 
-	const stashRoot = path.join(ROOT_DIR, '.tmp', 'detached-node-modules');
-	ensureDir(stashRoot);
-	const stashPath = path.join(
-		stashRoot,
-		`${path.basename(pluginDir)}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-	);
+	fs.cpSync(sourceNodeModules, path.join(destinationDir, 'node_modules'), {
+		dereference: true,
+		force: true,
+		filter: (entry) => path.basename(entry) !== '.vite',
+		recursive: true,
+	});
+}
 
-	try {
-		fs.renameSync(nodeModulesPath, stashPath);
-	} catch (error) {
-		if (
-			error &&
-			typeof error === 'object' &&
-			'code' in error &&
-			error.code === 'ENOENT'
-		) {
-			return callback();
-		}
-		throw error;
-	}
-	try {
-		return await callback();
-	} finally {
-		if (fs.existsSync(stashPath)) {
-			fs.renameSync(stashPath, nodeModulesPath);
-		}
-	}
+function stageLinkedInstallDir(packageDir) {
+	const stageRoot = path.join(HOST_ROOT_DIR, 'linked-packages');
+	const stageDir = path.join(stageRoot, path.basename(packageDir));
+	ensureDir(stageRoot);
+	fs.rmSync(stageDir, { force: true, recursive: true });
+	copyInstallablePackage(packageDir, stageDir);
+	return stageDir;
 }
 
 export function readJson(filePath) {
@@ -238,7 +239,14 @@ export function updateHostConfig(mutator) {
 }
 
 export function ensureLinkedPluginInstalled(pluginDir) {
-	return runOpenClaw(['plugins', 'install', '--link', '--dangerously-force-unsafe-install', pluginDir]);
+	const stagedDir = stageLinkedInstallDir(pluginDir);
+	return runOpenClaw([
+		'plugins',
+		'install',
+		'--link',
+		'--dangerously-force-unsafe-install',
+		stagedDir,
+	]);
 }
 
 export function ensureProbeInstalled(pluginDir) {

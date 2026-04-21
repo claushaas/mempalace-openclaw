@@ -28,7 +28,7 @@ const reports = [
 
 const report = {
 	name: 'host-real:sync-stage6',
-	openclawVersion: '2026.4.14',
+	openclawVersion: '2026.4.15',
 	recordedAt: new Date().toISOString(),
 	reports,
 	statusClassification: reports.every((entry) => entry.output.statusClassification === 'validated')

@@ -18,12 +18,12 @@
 			"./dist/index.js"
 		],
 		"compat": {
-			"pluginApi": ">=2026.4.14",
-			"minGatewayVersion": "2026.4.14"
+			"pluginApi": ">=2026.4.15",
+			"minGatewayVersion": "2026.4.15"
 		},
 		"build": {
-			"openclawVersion": "2026.4.14",
-			"pluginSdkVersion": "2026.4.14"
+			"openclawVersion": "2026.4.15",
+			"pluginSdkVersion": "2026.4.15"
 		}
 	},
 	"scripts": {
@@ -34,6 +34,6 @@
 	"dependencies": {
 		"@mempalace-openclaw/shared": "workspace:*",
 		"@mempalace-openclaw/sync-daemon": "workspace:*",
-		"openclaw": "2026.4.14"
+		"openclaw": "2026.4.15"
 	}
 }

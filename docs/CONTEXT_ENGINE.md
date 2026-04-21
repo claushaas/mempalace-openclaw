@@ -90,7 +90,7 @@ Ordem efetiva da implementação:
 - o context engine depende de `memory-mempalace` para retrieval.
 - o engine consome `manager.search(...)` e `manager.readFile(...)` do runtime de memória.
 - o enrichment primário usa `publicArtifacts.listArtifacts(...)`.
-- no ambiente host-real linkado de `openclaw@2026.4.14`, esse seam pode não refletir o provider registrado por causa da separação de instância do SDK; por isso a implementação usa fallback explícito para o mirror público em disco mantido por `memory-mempalace`.
+- no ambiente host-real linkado de `openclaw@2026.4.15`, esse seam pode não refletir o provider registrado por causa da separação de instância do SDK; por isso a implementação usa fallback explícito para o mirror público em disco mantido por `memory-mempalace`.
 - o engine não duplica indexação, sync nem promote.
 
 ## Interação com Active Memory

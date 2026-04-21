@@ -43,7 +43,7 @@ Documentos operacionais relacionados:
 
 | OpenClaw version | Status | Date | Install method | Notes |
 |---|---|---|---|---|
-| `2026.4.14` | `partially_validated` | `2026-04-16` | npm package `openclaw` | versão canônica; plugins finais `memory-mempalace`, `claw-context-mempalace`, `skill-mempalace-sync` e `sync-daemon` validados; `recommended` com recall observável validado; extensões opcionais de V2 validadas em harness dedicado; `full` segue parcialmente validado por falta de evidência do pass próprio de Active Memory |
+| `2026.4.15` | `partially_validated` | `2026-04-21` | npm package `openclaw` | versão canônica; pin, manifests, `memory-mempalace`, `claw-context-mempalace`, `memory-slot`, `recommended` e `full` revalidados em host real; `full` segue parcialmente validado por falta de evidência do pass próprio de Active Memory; installs linkados de packages workspace agora exigem staging local dereferenciado por causa do safety scan do host |
 
 ---
 
@@ -169,7 +169,7 @@ Documentos operacionais relacionados:
 - relatório: `.tmp/host-real-results/host-real-active-memory.json`
 - prova produzida:
   - config isolada usando `plugins.entries.active-memory`;
-  - `plugins inspect active-memory --json` em `openclaw@2026.4.14`;
+  - `plugins inspect active-memory --json` em `openclaw@2026.4.15`;
   - `config validate --json` aceitando o shape configurado;
   - bootstrap do gateway com o plugin bundled habilitado.
 
@@ -249,8 +249,8 @@ Observação:
 
 - Os probes desta etapa **não** implementam `memory-mempalace` nem `claw-context-mempalace`.
 - `validated` nesta etapa prova o seam do host, não a integração com MemPalace.
-- Em `openclaw@2026.4.14`, selecionar um memory slot externo desativa `memory-core`. Como `memory-core` é dono da árvore CLI `openclaw memory`, essa árvore não é um harness válido para plugins externos nesta etapa.
-- O seam de Active Memory está **disponível e configurável** em `2026.4.14`, mas o pass próprio pré-resposta ainda não foi provado com transcript observável.
+- Em `openclaw@2026.4.15`, selecionar um memory slot externo desativa `memory-core`. Como `memory-core` é dono da árvore CLI `openclaw memory`, essa árvore não é um harness válido para plugins externos nesta etapa.
+- O seam de Active Memory está **disponível e configurável** em `2026.4.15`, mas o pass próprio pré-resposta ainda não foi provado com transcript observável.
 - O `recommended` já é o baseline operacional do projeto para recall automático forte.
 - As extensões avançadas de V2 ficam desligadas por default e não alteram o contrato base `memory_*`.
 - Em ambiente host-real linkado, `listActiveMemoryPublicArtifacts(...)` pode não refletir o provider registrado do plugin final; o `claw-context-mempalace` usa esse seam primeiro e cai para o mirror público em disco do `memory-mempalace` quando necessário.
