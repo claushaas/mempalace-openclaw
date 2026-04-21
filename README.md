@@ -94,6 +94,38 @@ Pré-requisitos:
 - `Node.js v24.13.1`
 - `pnpm 10.33.0`
 
+### Onde clonar o repositório
+
+Este repositório não precisa ser clonado em um path fixo.
+
+Pode ser clonado em qualquer diretório local estável e gravável, por exemplo:
+
+- `~/dev/mempalace-openclaw`
+- `~/src/mempalace-openclaw`
+- `/Volumes/data/dev/mempalace-openclaw`
+
+Evite clonar em:
+
+- `~/.openclaw/`
+- `~/.openclaw/workspace/`
+- dentro de `.tmp/` do próprio projeto
+- diretórios efêmeros, sincronizados automaticamente ou sujeitos a limpeza agressiva
+
+Motivo:
+
+- o repositório é o workspace de desenvolvimento;
+- o OpenClaw mantém estado operacional separado em `OPENCLAW_STATE_DIR` ou, por default, em `~/.openclaw`;
+- os harnesses e instaladores deste projeto já usam `.tmp/` para staging temporário e host isolado;
+- misturar checkout do repositório com state dir do host aumenta o risco de conflito, limpeza acidental e paths confusos na instalação linkada.
+
+Fluxo recomendado:
+
+```sh
+git clone https://github.com/claushaas/mempalace-openclaw.git ~/dev/mempalace-openclaw
+cd ~/dev/mempalace-openclaw
+pnpm setup
+```
+
 Quickstart:
 
 - `pnpm setup`
