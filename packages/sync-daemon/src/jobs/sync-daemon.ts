@@ -45,6 +45,7 @@ type Logger = {
 
 type CreateSyncDaemonOptions = {
 	clientFactory?: (cfg: unknown) => SyncDaemonMemPalaceClient;
+	db?: SyncDatabase;
 	hostConfig: unknown;
 	logger?: Logger;
 	statePaths?: SyncStatePaths;
@@ -208,9 +209,9 @@ export class SyncDaemon {
 		this.clientFactory =
 			options.clientFactory ??
 			((cfg) => new SyncDaemonMemPalaceClient(resolveMemoryBackendConfig(cfg)));
-		this.db = new SyncDatabase(
-			(options.statePaths ?? resolveSyncStatePaths()).dbPath,
-		);
+		this.db =
+			options.db ??
+			new SyncDatabase((options.statePaths ?? resolveSyncStatePaths()).dbPath);
 		this.hostConfig = options.hostConfig;
 		this.logger = options.logger ?? DEFAULT_LOGGER;
 		this.statePaths = options.statePaths ?? resolveSyncStatePaths();

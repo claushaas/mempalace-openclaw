@@ -13,8 +13,11 @@ import type {
 import {
 	createFingerprint,
 	createVersionedHookEnvelope,
+	type SourceConfig,
+	type SyncJob,
 } from '@mempalace-openclaw/shared';
 import { afterEach, describe, expect, it } from 'vitest';
+import type { RuntimeRefreshRow } from '../db/store.js';
 import { writePendingSpoolRecord } from '../spool/records.js';
 import { createSyncDaemon } from './sync-daemon.js';
 
@@ -74,6 +77,125 @@ class FakeMemPalaceClient {
 	}
 }
 
+class FakeSyncDatabase {
+	private readonly errors: Array<{ errorMessage: string; jobId: string }> = [];
+
+	private readonly files = new Map<
+		string,
+		{ hash: string; last_ingested_at: string }
+	>();
+
+	private readonly jobs: SyncJob[] = [];
+
+	private readonly refreshes: RuntimeRefreshRow[] = [];
+
+	private readonly sources = new Map<string, SourceConfig & { enabled: boolean }>();
+
+	public addError(jobId: string, errorMessage: string): void {
+		this.errors.push({ errorMessage, jobId });
+	}
+
+	public close(): void {}
+
+	public deleteSource(sourceId: string): boolean {
+		return this.sources.delete(sourceId);
+	}
+
+	public finishJob(jobId: string, status: 'completed' | 'failed'): void {
+		const job = this.jobs.find((entry) => entry.jobId === jobId);
+		if (!job) {
+			return;
+		}
+		job.status = status;
+		job.finishedAt = new Date().toISOString();
+	}
+
+	public getFileRecord(
+		pathValue: string,
+	): { hash: string; last_ingested_at: string } | undefined {
+		return this.files.get(pathValue);
+	}
+
+	public getLatestRefresh(): RuntimeRefreshRow | undefined {
+		return this.refreshes
+			.toSorted((left, right) => right.triggered_at.localeCompare(left.triggered_at))
+			.at(0);
+	}
+
+	public getLatestSourceJob(sourceId: string): SyncJob | undefined {
+		return this.jobs
+			.filter((entry) => entry.sourceId === sourceId)
+			.toSorted((left, right) => right.startedAt.localeCompare(left.startedAt))
+			.at(0);
+	}
+
+	public hasAnyPendingSpoolFiles(): boolean {
+		return [...this.files.keys()].some((entry) => entry.startsWith('spool:'));
+	}
+
+	public insertRefresh(params: {
+		id: string;
+		reason: string;
+		status: string;
+		triggeredAt: string;
+	}): void {
+		this.refreshes.push({
+			completed_at: null,
+			id: params.id,
+			reason: params.reason,
+			status: params.status,
+			triggered_at: params.triggeredAt,
+		});
+	}
+
+	public listJobs(): SyncJob[] {
+		return this.jobs.toSorted((left, right) =>
+			right.startedAt.localeCompare(left.startedAt),
+		);
+	}
+
+	public listSources(): Array<SourceConfig & { enabled: boolean }> {
+		return [...this.sources.values()].toSorted((left, right) =>
+			left.id.localeCompare(right.id),
+		);
+	}
+
+	public markRefreshCompleted(
+		refreshId: string,
+		status: 'completed' | 'failed',
+	): void {
+		const refresh = this.refreshes.find((entry) => entry.id === refreshId);
+		if (!refresh) {
+			return;
+		}
+		refresh.completed_at = new Date().toISOString();
+		refresh.status = status;
+	}
+
+	public recordFile(pathValue: string, hash: string): void {
+		this.files.set(pathValue, {
+			hash,
+			last_ingested_at: new Date().toISOString(),
+		});
+	}
+
+	public startJob(sourceId: string): SyncJob {
+		const startedAt = new Date().toISOString();
+		const job: SyncJob = {
+			jobId: `${sourceId}-${startedAt.replace(/[:.]/g, '-')}`,
+			sourceId,
+			startedAt,
+			status: 'running',
+		};
+		this.jobs.push(job);
+		return job;
+	}
+
+	public upsertSource(config: SourceConfig): void {
+		this.sources.set(config.id, { ...config, enabled: true });
+	}
+}
+
 const tempDirs: string[] = [];
 
 function createTempDir(): string {
@@ -122,6 +244,7 @@ describe('SyncDaemon', () => {
 		const client = new FakeMemPalaceClient();
 		const daemon = createSyncDaemon({
 			clientFactory: () => client as never,
+			db: new FakeSyncDatabase() as never,
 			hostConfig: {},
 			statePaths: createStatePaths(baseDir),
 		});
@@ -164,6 +287,7 @@ describe('SyncDaemon', () => {
 		const client = new FakeMemPalaceClient();
 		const daemon = createSyncDaemon({
 			clientFactory: () => client as never,
+			db: new FakeSyncDatabase() as never,
 			hostConfig: {},
 			statePaths,
 		});
@@ -232,6 +356,7 @@ describe('SyncDaemon', () => {
 		const client = new FakeMemPalaceClient();
 		const daemon = createSyncDaemon({
 			clientFactory: () => client as never,
+			db: new FakeSyncDatabase() as never,
 			hostConfig: {},
 			statePaths,
 		});
@@ -275,6 +400,7 @@ describe('SyncDaemon', () => {
 		const client = new FakeMemPalaceClient();
 		const daemon = createSyncDaemon({
 			clientFactory: () => client as never,
+			db: new FakeSyncDatabase() as never,
 			hostConfig: {},
 			statePaths,
 		});
