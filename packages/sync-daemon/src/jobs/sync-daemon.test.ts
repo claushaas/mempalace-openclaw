@@ -89,7 +89,10 @@ class FakeSyncDatabase {
 
 	private readonly refreshes: RuntimeRefreshRow[] = [];
 
-	private readonly sources = new Map<string, SourceConfig & { enabled: boolean }>();
+	private readonly sources = new Map<
+		string,
+		SourceConfig & { enabled: boolean }
+	>();
 
 	public addError(jobId: string, errorMessage: string): void {
 		this.errors.push({ errorMessage, jobId });
@@ -118,7 +121,9 @@ class FakeSyncDatabase {
 
 	public getLatestRefresh(): RuntimeRefreshRow | undefined {
 		return this.refreshes
-			.toSorted((left, right) => right.triggered_at.localeCompare(left.triggered_at))
+			.toSorted((left, right) =>
+				right.triggered_at.localeCompare(left.triggered_at),
+			)
 			.at(0);
 	}
 
