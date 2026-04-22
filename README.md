@@ -186,11 +186,9 @@ Trecho que precisa ser ajustado:
     "entries": {
       "memory-mempalace": {
         "config": {
-          "command": "node",
-          "args": ["/absolute/path/to/mempalace-mcp-server.mjs"],
-          "env": {
-            "MEMPALACE_ENDPOINT": "replace-me"
-          }
+          "command": "/absolute/path/to/mempalace/.venv/bin/python",
+          "args": ["-m", "mempalace.mcp_server"],
+          "cwd": "/absolute/path/to/mempalace"
         }
       }
     }
@@ -219,6 +217,14 @@ Depois ajuste:
 ## Instalação no OpenClaw
 
 Este repositório não distribui plugins publicados em registry externo. Em `openclaw@2026.4.15`, o caminho suportado neste repositório é instalar os packages locais por meio do staging seguro fornecido por `pnpm openclaw:install-local-package`.
+
+Para uso real, este repositório também precisa de um backend MemPalace instalado separadamente. O `memory-mempalace` não embute o upstream `MemPalace/mempalace`; ele apenas inicia um servidor MCP externo via `stdio`.
+
+Isso significa:
+
+- o MemPalace precisa estar instalado;
+- o OpenClaw vai spawnar o processo automaticamente;
+- você não precisa deixar um daemon separado rodando manualmente antes.
 
 ### Skill de Onboarding Para o End User
 
@@ -272,7 +278,43 @@ Exemplo de prompt:
 Use $mempalace-openclaw-onboarding para me guiar na instalação e configuração do mempalace-openclaw no OpenClaw, começando pelo modo recommended.
 ```
 
-### 1. Preparar o repositório
+### 1. Instalar o backend MemPalace
+
+O upstream oficial é:
+
+- GitHub: <https://github.com/MemPalace/mempalace>
+- docs: <https://mempalaceofficial.com/>
+
+Fluxo completo via `git clone`, que é o caminho mais explícito para este repositório:
+
+```sh
+git clone https://github.com/MemPalace/mempalace.git ~/dev/mempalace
+cd ~/dev/mempalace
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e .
+```
+
+Se você também pretende desenvolver no upstream `MemPalace/mempalace`, use:
+
+```sh
+python -m pip install -e ".[dev]"
+```
+
+O comando MCP que este repositório espera apontar na config do OpenClaw é:
+
+```sh
+/absolute/path/to/mempalace/.venv/bin/python -m mempalace.mcp_server
+```
+
+Observações:
+
+- o `cwd` recomendado é a pasta clonada do `mempalace`;
+- o storage e a config do MemPalace seguem o comportamento do upstream, não deste repositório;
+- o upstream também pode ser instalado por `pip install mempalace`, mas o fluxo acima deixa explícito o clone, o ambiente Python e o comando MCP real usado na integração.
+
+### 2. Preparar o repositório
 
 ```sh
 pnpm setup
@@ -285,7 +327,7 @@ Isso garante:
 - validação dos examples;
 - diretórios temporários operacionais preparados.
 
-### 2. Instalar os packages no host
+### 3. Instalar os packages no host
 
 Instalação mínima do runtime de memória:
 
@@ -320,7 +362,7 @@ Observações:
 - `skill-mempalace-sync` e `mempalace-ingest-hooks` são complementos operacionais, não pré-requisitos do modo `memory-only`;
 - `active-memory` não é instalado por este repositório; ele é um plugin bundled do próprio OpenClaw quando a versão-alvo o fornece.
 
-### 3. Confirmar a instalação
+### 4. Confirmar a instalação
 
 Depois do link install, valide discovery e estado:
 
@@ -367,12 +409,9 @@ Exemplo:
         "enabled": true,
         "config": {
           "transport": "stdio",
-          "command": "node",
-          "args": ["/absolute/path/to/mempalace-mcp-server.mjs"],
-          "cwd": "/absolute/path/to/mempalace-backend",
-          "env": {
-            "MEMPALACE_ENDPOINT": "replace-me"
-          },
+          "command": "/absolute/path/to/mempalace/.venv/bin/python",
+          "args": ["-m", "mempalace.mcp_server"],
+          "cwd": "/absolute/path/to/mempalace",
           "timeoutMs": 5000,
           "defaultTokenBudget": 1200,
           "defaultResultLimit": 8
@@ -388,10 +427,41 @@ Exemplo:
 
 Campos que normalmente precisam de edição:
 
+- `command`
 - `args`
 - `cwd`
-- `env`
 - `timeoutMs`, se o backend local for mais lento
+
+Recomendação prática:
+
+- aponte `command` para o Python do virtualenv usado para instalar o upstream `MemPalace/mempalace`;
+- mantenha `args = ["-m", "mempalace.mcp_server"]`;
+- use `cwd` apontando para o clone local do `mempalace`.
+
+Exemplo realista:
+
+```json
+{
+  "plugins": {
+    "entries": {
+      "memory-mempalace": {
+        "enabled": true,
+        "config": {
+          "transport": "stdio",
+          "command": "/Users/you/dev/mempalace/.venv/bin/python",
+          "args": ["-m", "mempalace.mcp_server"],
+          "cwd": "/Users/you/dev/mempalace",
+          "timeoutMs": 5000,
+          "defaultTokenBudget": 1200,
+          "defaultResultLimit": 8
+        }
+      }
+    }
+  }
+}
+```
+
+Se você instalou o upstream por `pip install mempalace` em outro virtualenv, ajuste apenas o path do `python` desse ambiente.
 
 ### 3. Ativar o context engine
 

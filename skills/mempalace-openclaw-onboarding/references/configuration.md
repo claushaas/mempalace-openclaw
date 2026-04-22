@@ -24,14 +24,12 @@ The `memory-mempalace` backend block usually needs these edits:
 - `command`
 - `args`
 - `cwd`
-- `env`
 - sometimes `timeoutMs`
 
 Typical placeholders the user must replace:
 
-- path to the MemPalace MCP server entrypoint
-- backend working directory
-- endpoint or credentials expected by the MemPalace backend
+- path to the Python interpreter of the virtualenv where `MemPalace/mempalace` was installed
+- backend working directory pointing to the local `mempalace` clone
 
 When configuring sync sources, the user must also adjust:
 
@@ -92,3 +90,26 @@ pnpm exec openclaw config validate --json
 ```
 
 If a config fails validation, do not hand-wave. Identify the exact wrong field, placeholder, missing plugin install, or path issue.
+
+The canonical backend shape for this repository is:
+
+```json
+{
+  "plugins": {
+    "entries": {
+      "memory-mempalace": {
+        "enabled": true,
+        "config": {
+          "transport": "stdio",
+          "command": "/absolute/path/to/mempalace/.venv/bin/python",
+          "args": ["-m", "mempalace.mcp_server"],
+          "cwd": "/absolute/path/to/mempalace",
+          "timeoutMs": 5000,
+          "defaultTokenBudget": 1200,
+          "defaultResultLimit": 8
+        }
+      }
+    }
+  }
+}
+```

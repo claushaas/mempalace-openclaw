@@ -6,11 +6,12 @@ This repository is consumed by OpenClaw through local package installation. The 
 
 The default end-user path is:
 
-1. clone the repository into a stable writable directory;
-2. run `pnpm setup`;
-3. install the local packages required by the chosen mode;
-4. copy a versioned example config and edit the placeholders;
-5. validate the config before real use.
+1. install the upstream `MemPalace/mempalace` backend;
+2. clone this repository into a stable writable directory;
+3. run `pnpm setup`;
+4. install the local packages required by the chosen mode;
+5. copy a versioned example config and edit the placeholders;
+6. validate the config before real use.
 
 ## Where to clone
 
@@ -31,6 +32,33 @@ Use a stable local workspace such as:
 
 - `Node.js v24.13.1`
 - `pnpm 10.33.0`
+- `Python 3.9+`
+
+## Install the upstream MemPalace backend
+
+Official upstream:
+
+- `https://github.com/MemPalace/mempalace`
+- `https://mempalaceofficial.com/`
+
+Full source install:
+
+```sh
+git clone https://github.com/MemPalace/mempalace.git ~/dev/mempalace
+cd ~/dev/mempalace
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e .
+```
+
+The MCP command expected by this repository is:
+
+```sh
+/absolute/path/to/mempalace/.venv/bin/python -m mempalace.mcp_server
+```
+
+If the user is developing upstream too, `python -m pip install -e ".[dev]"` is also valid.
 
 Bootstrap:
 
