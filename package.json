@@ -13,6 +13,7 @@
 		"test": "vitest run --passWithNoTests",
 		"setup": "bash ./scripts/setup.sh",
 		"openclaw:install-local-package": "node ./scripts/openclaw/install-local-package.mjs",
+		"skill:copy:onboarding": "node ./scripts/install-skill.mjs",
 		"lint": "pnpm lint:fix",
 		"lint:check": "biome check",
 		"lint:fix": "biome check --unsafe --write",

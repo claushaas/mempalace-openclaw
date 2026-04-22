@@ -220,6 +220,58 @@ Depois ajuste:
 
 Este repositório não distribui plugins publicados em registry externo. Em `openclaw@2026.4.15`, o caminho suportado neste repositório é instalar os packages locais por meio do staging seguro fornecido por `pnpm openclaw:install-local-package`.
 
+### Skill de Onboarding Para o End User
+
+Este repositório também distribui uma skill instrucional para ajudar o agente a orientar instalação, configuração e uso operacional deste projeto no OpenClaw:
+
+- `skills/mempalace-openclaw-onboarding/`
+
+Essa skill não adiciona runtime nem comandos novos. Ela ensina o agente a:
+
+- instalar os packages locais do repositório no host;
+- escolher entre `memory-only`, `recommended`, `full` e `advanced`;
+- configurar os examples versionados corretamente;
+- usar `mempalace-sync`, validar setup e explicar limitações reais.
+
+### Como instalar a skill no ambiente local
+
+Use o script do repositório para copiar a skill para um diretório de skills escolhido:
+
+```sh
+pnpm skill:copy:onboarding -- "${CODEX_HOME:-$HOME/.codex}/skills"
+```
+
+Se você omitir o argumento, o script usa:
+
+- `${CODEX_HOME}/skills`, quando `CODEX_HOME` estiver definido;
+- `~/.codex/skills`, caso contrário.
+
+Exemplo sem argumento explícito:
+
+```sh
+pnpm skill:copy:onboarding
+```
+
+O script copia `skills/mempalace-openclaw-onboarding/` para o diretório alvo, substituindo apenas a cópia anterior dessa mesma skill no destino.
+
+Depois recarregue ou reinicie o ambiente do agente, se o cliente atual exigir isso para redescobrir skills locais.
+
+### Quando usar a skill
+
+Use essa skill quando o usuário pedir ajuda para:
+
+- instalar `mempalace-openclaw`;
+- configurar o OpenClaw para usar os plugins do repositório;
+- escolher o modo operacional correto;
+- operar `mempalace-sync`;
+- validar setup, config, recall ou sync.
+
+Exemplo de prompt:
+
+```text
+Use $mempalace-openclaw-onboarding para me guiar na instalação e configuração do mempalace-openclaw no OpenClaw, começando pelo modo recommended.
+```
+
 ### 1. Preparar o repositório
 
 ```sh

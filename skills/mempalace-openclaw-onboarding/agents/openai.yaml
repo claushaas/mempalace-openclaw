@@ -1,0 +1,7 @@
+interface:
+  display_name: "MemPalace OpenClaw Onboarding"
+  short_description: "Install, configure, and operate mempalace-openclaw."
+  default_prompt: "Use $mempalace-openclaw-onboarding to guide installation, configuration, and operational usage of mempalace-openclaw in OpenClaw."
+
+policy:
+  allow_implicit_invocation: true
