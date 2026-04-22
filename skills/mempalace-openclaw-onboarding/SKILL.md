@@ -9,11 +9,21 @@ Use this skill for end-user onboarding of this repository inside OpenClaw.
 
 Treat the repository artifacts as the source of truth:
 
-- [../../README.md](../../README.md)
-- `../../examples/openclaw.config.memory-only.json`
-- `../../examples/openclaw.config.recommended.json`
-- `../../examples/openclaw.config.full.json`
-- `../../examples/openclaw.config.advanced.json`
+- `README.md`
+- `examples/openclaw.config.memory-only.json`
+- `examples/openclaw.config.recommended.json`
+- `examples/openclaw.config.full.json`
+- `examples/openclaw.config.advanced.json`
+
+Do not resolve those paths relative to the skill directory. This skill may be copied into a global skills folder.
+
+First locate the repository root in the user's workspace, then read the repo-relative files from there.
+
+Reliable signals for the repo root:
+
+- a `package.json` whose `"name"` is `mempalace-openclaw`
+- a `README.md` whose title is `# mempalace-openclaw`
+- the presence of `examples/openclaw.config.recommended.json`
 
 Do not invent configuration shapes that are not present in the versioned examples.
 
@@ -35,7 +45,7 @@ Never present hooks as the primary recall mechanism. Hooks are operational inges
 2. Start from the versioned examples and commands already shipped by the repository.
 3. Recommend the minimum package set needed for the chosen mode.
 4. Explain required edits concretely:
-   - backend `command` / `args` / `cwd` / `env`
+   - backend `command` / `args` / `cwd`
    - local `path`
    - `include` / `exclude`
    - `schedule`

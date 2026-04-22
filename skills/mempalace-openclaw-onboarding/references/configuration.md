@@ -4,10 +4,18 @@
 
 Always begin from one of the shipped examples:
 
-- `../../examples/openclaw.config.memory-only.json`
-- `../../examples/openclaw.config.recommended.json`
-- `../../examples/openclaw.config.full.json`
-- `../../examples/openclaw.config.advanced.json`
+- `examples/openclaw.config.memory-only.json`
+- `examples/openclaw.config.recommended.json`
+- `examples/openclaw.config.full.json`
+- `examples/openclaw.config.advanced.json`
+
+Those are repository-relative paths, not paths relative to the installed skill folder.
+
+If needed, locate the repository root first by finding:
+
+- `package.json` with `"name": "mempalace-openclaw"`
+- `README.md` with `# mempalace-openclaw`
+- `examples/openclaw.config.recommended.json`
 
 Never synthesize a new top-level config shape when the example already exists.
 
@@ -42,8 +50,8 @@ When configuring sync sources, the user must also adjust:
 
 The source examples live in:
 
-- `../../examples/obsidian-source.json`
-- `../../examples/repo-source.json`
+- `examples/obsidian-source.json`
+- `examples/repo-source.json`
 
 ## Mode-specific config surfaces
 
